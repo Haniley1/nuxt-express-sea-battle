@@ -1,102 +1,74 @@
 <template>
-  <div class="sea-battle">
-    <!-- Игровая сетка -->
-    <div class="grid">
-      <div
-        v-for="(row, rowIndex) in grid"
-        :key="rowIndex"
-        class="grid-row"
-      >
-        <div
-          v-for="(cell, colIndex) in row"
-          :key="colIndex"
-          class="grid-cell"
-          @dragover="onDrop($event, rowIndex, colIndex)"
-          @drop="onDrop($event, rowIndex, colIndex)"
-        >
-          <div
-            v-if="cell.ship"
-            class="ship"
-            :class="`ship-${cell.ship.size}`"
-          >
-            {{ cell.ship.size }}
-          </div>
+  <DndProvider :backend="HTML5Backend">
+    <div class="sea-battle">
+      <!-- Игровая сетка -->
+      <div :ref="drop" class="grid">
+        <div v-for="idx in 100" class="grid-cell">
+          {{ idx }}
         </div>
+        <Ship 
+          v-for="(ship, key) in createdShips" 
+          :key="key" 
+          :id="key"
+          :size="cellSize"
+          v-bind="ship"
+        />
       </div>
     </div>
-
-    <!-- Иконки кораблей -->
-    <div class="ships">
-      <div
-        v-for="ship in ships"
-        :key="ship.id"
-        class="ship-icon"
-        :class="`ship-${ship.size}`"
-        draggable="true"
-        @dragstart="onDragStart($event, ship)"
-      >
-        {{ ship.size }}
-      </div>
-    </div>
-  </div>
+  </DndProvider>
 </template>
 
-<script setup>
-import { ref } from 'vue';
+<script setup lang="ts">
+import { reactive } from "vue";
+import { useDrop, DndProvider } from "vue3-dnd";
+import Ship from "./Ship.vue";
+import { HTML5Backend } from "react-dnd-html5-backend";
 
-// Состояние сетки
-const grid = ref(Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => ({ ship: null }))));
-console.log(grid)
+interface Ship {
+  top: number;
+  left: number;
+  type: "battleship" | "cruisers" | "destroyer" | "submarine";
+}
 
-// Корабли для размещения
-const ships = ref([
-  { id: 1, size: 4 }, // Линкор (4 клетки)
-  { id: 2, size: 3 }, // Крейсер (3 клетки)
-  { id: 4, size: 2 }, // Эсминец (2 клетки)
-  { id: 10, size: 1 }, // Катер (1 клетка)
-]);
+const props = withDefaults(defineProps<{ cellSize?: number }>(), {
+  cellSize: 48,
+});
 
-// Текущий перетаскиваемый корабль
-let draggedShip = null;
+const createdShips = reactive<{ [key: string]: Ship }>({
+  a: { top: props.cellSize, left: props.cellSize * 2, type: 'battleship' },
+});
 
-// Начало перетаскивания
-const onDragStart = (event, ship) => {
-  draggedShip = ship;
-  event.dataTransfer.setData('text/plain', ship.id);
+const moveBox = (id: keyof typeof createdShips, left: number, top: number) => {
+  Object.assign(createdShips[id], { left, top });
 };
 
-// Обработка размещения корабля
-const onDrop = (event, row, col) => {
-  if (!draggedShip) return;
+function snapToGrid(x: number, y: number): [number, number] {
+  const snappedX = Math.round(x / props.cellSize) * props.cellSize;
+  const snappedY = Math.round(y / props.cellSize) * props.cellSize;
+  return [snappedX, snappedY];
+}
 
-  // Проверка, можно ли разместить корабль
-  if (canPlaceShip(row, col, draggedShip.size)) {
-    placeShip(row, col, draggedShip);
-  }
+const [, drop] = useDrop(() => ({
+  accept: "Ship",
+  drop(item: any, monitor) {
+    const delta = monitor.getDifferenceFromInitialOffset();
+    if (!delta) return;
 
-  draggedShip = null;
-};
+    let l = Math.round(item.left + delta.x);
+    let t = Math.round(item.top + delta.y);
+    const [left, top] = snapToGrid(l, t);
 
-// Проверка возможности размещения корабля
-const canPlaceShip = (row, col, size) => {
-  for (let i = 0; i < size; i++) {
-    if (col + i >= 10 || grid.value[row][col + i].ship) {
-      return false;
-    }
-  }
-  return true;
-};
-
-// Размещение корабля на сетке
-const placeShip = (row, col, ship) => {
-  for (let i = 0; i < ship.size; i++) {
-    grid.value[row][col + i].ship = ship;
-  }
-};
+    moveBox(item.id, left, top);
+    return undefined;
+  },
+}));
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+$cellSize: 48px;
+
 .sea-battle {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -104,18 +76,13 @@ const placeShip = (row, col, ship) => {
 }
 
 .grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(10, $cellSize);
+  grid-template-rows: repeat(10, $cellSize);
   border: 1px solid #000;
 }
 
-.grid-row {
-  display: flex;
-}
-
 .grid-cell {
-  width: 40px;
-  height: 40px;
   border: 1px solid #ccc;
   display: flex;
   align-items: center;
@@ -123,33 +90,23 @@ const placeShip = (row, col, ship) => {
   cursor: pointer;
 }
 
-.ship {
-  background-color: #007bff;
-  color: white;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .ship-1 {
-  width: 40px;
+  width: $cellSize;
   background-color: #28a745;
 }
 
 .ship-2 {
-  width: 80px;
+  width: calc($cellSize * 2);
   background-color: #ffc107;
 }
 
 .ship-3 {
-  width: 120px;
+  width: calc($cellSize * 3);
   background-color: #dc3545;
 }
 
 .ship-4 {
-  width: 160px;
+  width: calc($cellSize * 4);
   background-color: #6f42c1;
 }
 
@@ -159,7 +116,7 @@ const placeShip = (row, col, ship) => {
 }
 
 .ship-icon {
-  height: 40px;
+  height: $cellSize;
   color: white;
   display: flex;
   align-items: center;
