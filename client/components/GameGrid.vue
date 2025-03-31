@@ -1,6 +1,6 @@
 <template>
   <DndProvider :backend="HTML5Backend">
-    <div class="sea-battle">
+    <div class="sea-battle" :style="{'--size': `${cellSize}px`}">
       <!-- Игровая сетка -->
       <div :ref="drop" class="grid">
         <div v-for="idx in 100" class="grid-cell">
@@ -11,7 +11,7 @@
           :key="key" 
           :id="key"
           :size="cellSize"
-          v-bind="ship"
+          :ship="ship"
         />
       </div>
     </div>
@@ -23,20 +23,16 @@ import { reactive } from "vue";
 import { useDrop, DndProvider } from "vue3-dnd";
 import Ship from "./Ship.vue";
 import { HTML5Backend } from "react-dnd-html5-backend";
-
-interface Ship {
-  top: number;
-  left: number;
-  type: "battleship" | "cruisers" | "destroyer" | "submarine";
-}
+import type { Ship as ShipType } from "~/model/Game";
 
 const props = withDefaults(defineProps<{ cellSize?: number }>(), {
   cellSize: 48,
 });
 
-const createdShips = reactive<{ [key: string]: Ship }>({
-  a: { top: props.cellSize, left: props.cellSize * 2, type: 'battleship' },
-});
+const createdShips = reactive<Map<string, ShipType>>(new Map([
+  ['a', { top: props.cellSize, left: props.cellSize * 2, type: 'BATTLESHIP' } as ShipType],
+  ['b', { top: props.cellSize * 5, left: props.cellSize * 2, type: 'CRUISERS' }],
+]));
 
 const moveBox = (id: keyof typeof createdShips, left: number, top: number) => {
   Object.assign(createdShips[id], { left, top });
@@ -50,22 +46,26 @@ function snapToGrid(x: number, y: number): [number, number] {
 
 const [, drop] = useDrop(() => ({
   accept: "Ship",
-  drop(item: any, monitor) {
+  drop(item: ShipType, monitor) {
     const delta = monitor.getDifferenceFromInitialOffset();
     if (!delta) return;
 
-    let l = Math.round(item.left + delta.x);
-    let t = Math.round(item.top + delta.y);
-    const [left, top] = snapToGrid(l, t);
+    console.log(item)
 
-    moveBox(item.id, left, top);
+    const roundedLeft = Math.round(item.left + delta.x)
+    const roundedTop = Math.round(item.top + delta.y)
+    const left = Math.max(0, Math.min(roundedLeft, 10 * props.cellSize));
+    const top = Math.max(0, Math.min(roundedTop, 10 * props.cellSize));
+    const [snappedLeft, snappedTop] = snapToGrid(left, top);
+
+    moveBox(item.id, snappedLeft, snappedTop);
     return undefined;
   },
 }));
 </script>
 
 <style scoped lang="scss">
-$cellSize: 48px;
+$cellSize: var(--size, 32px);
 
 .sea-battle {
   position: relative;
@@ -87,40 +87,6 @@ $cellSize: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-}
-
-.ship-1 {
-  width: $cellSize;
-  background-color: #28a745;
-}
-
-.ship-2 {
-  width: calc($cellSize * 2);
-  background-color: #ffc107;
-}
-
-.ship-3 {
-  width: calc($cellSize * 3);
-  background-color: #dc3545;
-}
-
-.ship-4 {
-  width: calc($cellSize * 4);
-  background-color: #6f42c1;
-}
-
-.ships {
-  display: flex;
-  gap: 10px;
-}
-
-.ship-icon {
-  height: $cellSize;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: grab;
+  cursor: default;
 }
 </style>
