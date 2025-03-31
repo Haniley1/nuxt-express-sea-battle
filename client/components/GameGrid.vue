@@ -3,14 +3,12 @@
     <div class="sea-battle" :style="{'--size': `${cellSize}px`}">
       <!-- Игровая сетка -->
       <div :ref="drop" class="grid">
-        <div v-for="idx in 100" class="grid-cell">
-          {{ idx }}
-        </div>
-        <Ship 
-          v-for="(ship, key) in createdShips" 
+        <div v-for="idx in 100" class="grid-cell" />
+        <ShipComponent
+          v-for="[key, ship] in createdShips" 
           :key="key" 
           :id="key"
-          :size="cellSize"
+          :cell-size="cellSize"
           :ship="ship"
         />
       </div>
@@ -21,21 +19,25 @@
 <script setup lang="ts">
 import { reactive } from "vue";
 import { useDrop, DndProvider } from "vue3-dnd";
-import Ship from "./Ship.vue";
+import ShipComponent from "./Ship.vue";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import type { Ship as ShipType } from "~/model/Game";
+import { Ships, type Ship } from "~/model/Game";
 
 const props = withDefaults(defineProps<{ cellSize?: number }>(), {
-  cellSize: 48,
+  cellSize: 50,
 });
 
-const createdShips = reactive<Map<string, ShipType>>(new Map([
-  ['a', { top: props.cellSize, left: props.cellSize * 2, type: 'BATTLESHIP' } as ShipType],
-  ['b', { top: props.cellSize * 5, left: props.cellSize * 2, type: 'CRUISERS' }],
+const createdShips = reactive(new Map<string, Ship>([
+  ['a', { top: props.cellSize, left: props.cellSize * 2, type: 'BATTLESHIP', rotated: false }],
+  ['b', { top: props.cellSize * 5, left: props.cellSize * 2, type: 'CRUISERS', rotated: true }],
 ]));
 
-const moveBox = (id: keyof typeof createdShips, left: number, top: number) => {
-  Object.assign(createdShips[id], { left, top });
+const moveBox = (id: string, left: number, top: number) => {
+  const draggedShip = createdShips.get(id)
+
+  if (draggedShip) {
+    Object.assign(draggedShip, { left, top });
+  }
 };
 
 function snapToGrid(x: number, y: number): [number, number] {
@@ -46,16 +48,19 @@ function snapToGrid(x: number, y: number): [number, number] {
 
 const [, drop] = useDrop(() => ({
   accept: "Ship",
-  drop(item: ShipType, monitor) {
+  drop(item: { id: string, ship: Ship }, monitor) {
     const delta = monitor.getDifferenceFromInitialOffset();
     if (!delta) return;
 
-    console.log(item)
-
-    const roundedLeft = Math.round(item.left + delta.x)
-    const roundedTop = Math.round(item.top + delta.y)
-    const left = Math.max(0, Math.min(roundedLeft, 10 * props.cellSize));
-    const top = Math.max(0, Math.min(roundedTop, 10 * props.cellSize));
+    const maxDefault = 10 * props.cellSize
+    const max = maxDefault - (Ships[item.ship.type] * props.cellSize)
+    const maxLeft = !item.ship.rotated ? max : maxDefault
+    const maxTop = item.ship.rotated ? max : maxDefault
+    
+    const roundedLeft = Math.round(item.ship.left + delta.x)
+    const roundedTop = Math.round(item.ship.top + delta.y)
+    const left = Math.max(0, Math.min(roundedLeft, maxLeft));
+    const top = Math.max(0, Math.min(roundedTop, maxTop));
     const [snappedLeft, snappedTop] = snapToGrid(left, top);
 
     moveBox(item.id, snappedLeft, snappedTop);
@@ -69,8 +74,10 @@ $cellSize: var(--size, 32px);
 
 .sea-battle {
   position: relative;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
   gap: 20px;
 }

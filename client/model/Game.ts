@@ -2,6 +2,7 @@ export interface Ship {
   top: number;
   left: number;
   type: ShipType;
+  rotated: boolean
 }
 
 export enum Ships {
