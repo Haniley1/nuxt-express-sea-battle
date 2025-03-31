@@ -3,7 +3,7 @@
     <div class="sea-battle" :style="{'--size': `${cellSize}px`}">
       <!-- Игровая сетка -->
       <div :ref="drop" class="grid">
-        <div v-for="idx in 100" class="grid-cell" />
+        <div v-for="idx in gridSize * 10" :key="idx" class="grid-cell" />
         <ShipComponent
           v-for="[key, ship] in createdShips" 
           :key="key" 
@@ -23,28 +23,23 @@ import ShipComponent from "./Ship.vue";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { Ships, type Ship } from "~/model/Game";
 
-const props = withDefaults(defineProps<{ cellSize?: number }>(), {
+const props = withDefaults(defineProps<{ cellSize?: number, gridSize?: number }>(), {
   cellSize: 50,
+  gridSize: 10,
 });
 
 const createdShips = reactive(new Map<string, Ship>([
-  ['a', { top: props.cellSize, left: props.cellSize * 2, type: 'BATTLESHIP', rotated: false }],
-  ['b', { top: props.cellSize * 5, left: props.cellSize * 2, type: 'CRUISERS', rotated: true }],
+  ['a', { x: 2, y: 1, type: 'BATTLESHIP', rotated: false }],
+  ['b', { x: 2, y: 5, type: 'CRUISERS', rotated: true }],
 ]));
 
-const moveBox = (id: string, left: number, top: number) => {
+const moveBox = (id: string, x: number, y: number) => {
   const draggedShip = createdShips.get(id)
 
   if (draggedShip) {
-    Object.assign(draggedShip, { left, top });
+    Object.assign(draggedShip, { x, y });
   }
 };
-
-function snapToGrid(x: number, y: number): [number, number] {
-  const snappedX = Math.round(x / props.cellSize) * props.cellSize;
-  const snappedY = Math.round(y / props.cellSize) * props.cellSize;
-  return [snappedX, snappedY];
-}
 
 const [, drop] = useDrop(() => ({
   accept: "Ship",
@@ -52,18 +47,18 @@ const [, drop] = useDrop(() => ({
     const delta = monitor.getDifferenceFromInitialOffset();
     if (!delta) return;
 
-    const maxDefault = 10 * props.cellSize
-    const max = maxDefault - (Ships[item.ship.type] * props.cellSize)
-    const maxLeft = !item.ship.rotated ? max : maxDefault
-    const maxTop = item.ship.rotated ? max : maxDefault
+    const shipSize = Ships[item.ship.type] as number
+    const maxXYDefault = props.gridSize
+    const maxXYRotated = maxXYDefault - shipSize
+    const maxX = item.ship.rotated ? maxXYDefault : maxXYRotated
+    const maxY = !item.ship.rotated ? maxXYDefault : maxXYRotated
     
-    const roundedLeft = Math.round(item.ship.left + delta.x)
-    const roundedTop = Math.round(item.ship.top + delta.y)
-    const left = Math.max(0, Math.min(roundedLeft, maxLeft));
-    const top = Math.max(0, Math.min(roundedTop, maxTop));
-    const [snappedLeft, snappedTop] = snapToGrid(left, top);
+    const roundedX = Math.round((item.ship.x * props.cellSize + delta.x) / props.cellSize)
+    const roundedY = Math.round((item.ship.y * props.cellSize + delta.y) / props.cellSize)
+    const x = Math.max(0, Math.min(roundedX, maxX));
+    const y = Math.max(0, Math.min(roundedY, maxY));
 
-    moveBox(item.id, snappedLeft, snappedTop);
+    moveBox(item.id, x, y);
     return undefined;
   },
 }));

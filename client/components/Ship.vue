@@ -23,11 +23,11 @@ const props = defineProps<{
 
 const shipStyles = computed<StyleValue>(() => {
   const { ship, cellSize } = props;
-  let transformValue = `translate3d(${ship.left}px, ${ship.top}px, 0)`;
+  const [left, top] = [ship.x * cellSize, ship.y * cellSize]
 
   return {
     "--size": `${cellSize}px`,
-    transform: transformValue,
+    transform: `translate3d(${left}px, ${top}px, 0)`,
     opacity: isDragging ? 0 : 1,
     height: isDragging ? 0 : "",
   };
@@ -48,17 +48,22 @@ $cellSize: var(--size, 32px);
 
 .ship {
   position: absolute;
-  height: $cellSize;
-  background-color: red;
   cursor: grab;
 
   &.ship_rotated {
-    width: $cellSize !important;
+    width: $cellSize;
+  }
+
+  &:not(.ship-rotated) {
+    height: $cellSize;
   }
 
   &.ship_submarine {
-    width: $cellSize;
     background-color: #28a745;
+
+    &:not(.ship_rotated) {
+      width: calc($cellSize);
+    }
 
     &.ship_rotated {
       height: calc($cellSize * 1);
@@ -66,8 +71,11 @@ $cellSize: var(--size, 32px);
   }
 
   &.ship_destroyer {
-    width: calc($cellSize * 2);
     background-color: #ffc107;
+
+    &:not(.ship_rotated) {
+      width: calc($cellSize * 2);
+    }
 
     &.ship_rotated {
       height: calc($cellSize * 2);
@@ -75,8 +83,11 @@ $cellSize: var(--size, 32px);
   }
 
   &.ship_cruisers {
-    width: calc($cellSize * 3);
     background-color: #dc3545;
+
+    &:not(.ship_rotated) {
+      width: calc($cellSize * 3);
+    }
 
     &.ship_rotated {
       height: calc($cellSize * 3);
@@ -84,8 +95,11 @@ $cellSize: var(--size, 32px);
   }
 
   &.ship_battleship {
-    width: calc($cellSize * 4);
     background-color: #6f42c1;
+
+    &:not(.ship_rotated) {
+      width: calc($cellSize * 4);
+    }
 
     &.ship_rotated {
       height: calc($cellSize * 4);

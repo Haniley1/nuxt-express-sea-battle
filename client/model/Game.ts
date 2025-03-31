@@ -1,6 +1,6 @@
 export interface Ship {
-  top: number;
-  left: number;
+  x: number;
+  y: number;
   type: ShipType;
   rotated: boolean
 }
