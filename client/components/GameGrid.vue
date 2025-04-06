@@ -21,7 +21,7 @@ import { reactive } from "vue";
 import { useDrop, DndProvider } from "vue3-dnd";
 import ShipComponent from "./Ship.vue";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { Ships, type Ship } from "~/model/Game";
+import { Ship } from "~/model/Ship";
 
 const props = withDefaults(
   defineProps<{ cellSize?: number; gridSize?: number }>(),
@@ -33,8 +33,8 @@ const props = withDefaults(
 
 const createdShips = reactive(
   new Map<string, Ship>([
-    ["a", { x: 2, y: 1, type: "BATTLESHIP", rotated: false }],
-    ["b", { x: 2, y: 5, type: "CRUISERS", rotated: true }],
+    ["a", new Ship({ x: 2, y: 1, type: "BATTLESHIP", rotated: false })],
+    ["b", new Ship({ x: 2, y: 5, type: "CRUISERS", rotated: true })],
   ])
 );
 
@@ -51,8 +51,8 @@ const getTurtleCoordinates = (
   y: number,
   ship: Ship
 ): { x: [number, number]; y: [number, number] } => {
-  const xEnd = !ship.rotated ? x + Ships[ship.type] - 1 : x;
-  const yEnd = ship.rotated ? y + Ships[ship.type] - 1 : y;
+  const xEnd = !ship.rotated ? x + ship.size - 1 : x;
+  const yEnd = ship.rotated ? y + ship.size - 1 : y;
 
   return { x: [x, xEnd], y: [y, yEnd] };
 };
@@ -84,9 +84,8 @@ const [, drop] = useDrop(() => ({
     const delta = monitor.getDifferenceFromInitialOffset();
     if (!delta) return;
 
-    const shipSize = Ships[item.ship.type] as number;
     const maxXYDefault = props.gridSize;
-    const maxXYRotated = maxXYDefault - shipSize;
+    const maxXYRotated = maxXYDefault - item.ship.size;
     const maxX = item.ship.rotated ? maxXYDefault : maxXYRotated;
     const maxY = !item.ship.rotated ? maxXYDefault : maxXYRotated;
 

@@ -13,7 +13,7 @@ import { computed } from "vue";
 import { type StyleValue } from "vue";
 import { toRefs } from "vue";
 import { useDrag, type DragSourceMonitor } from "vue3-dnd";
-import type { Ship } from "~/model/Game";
+import { Ship } from "~/model/Ship";
 
 const props = defineProps<{
   ship: Ship;
