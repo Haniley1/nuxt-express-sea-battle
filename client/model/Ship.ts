@@ -18,7 +18,7 @@ export class Ship {
   public size: number;
   public type: keyof typeof Ships;
   public rotated: boolean;
-  public coordinates: ShipCoordinates;
+  public coordinates!: ShipCoordinates;
 
   constructor(props: ShipProps) {
     this.rotated = props.rotated || false;
@@ -26,19 +26,22 @@ export class Ship {
     this.size = Ships[this.type]
     this.x = props.x
     this.y = props.y
-    this.coordinates = this.setCoordinates(props.x, props.y)
+    this.setCoordinates(props.x, props.y)
   }
 
-  public setCoordinates(x: number, y: number): ShipCoordinates {
-    const coords = this.defineShipCells(x, y)
-    this.coordinates = coords
+  public setCoordinates(x: number, y: number) {
+    this.coordinates = this.defineShipCells(x, y)
+    this.x = x
+    this.y = y
+  }
 
-    return coords
+  public rotate() {
+    this.rotated = !this.rotated
   }
 
   private defineShipCells = (x: number, y: number): ShipCoordinates => {
-    const xEnd = !this.rotated ? this.size - 1 : x;
-    const yEnd = this.rotated ? this.size - 1 : y;
+    const xEnd = !this.rotated ? x + this.size - 1 : x;
+    const yEnd = this.rotated ? y + this.size - 1 : y;
   
     return { x: [x, xEnd], y: [y, yEnd] };
   }

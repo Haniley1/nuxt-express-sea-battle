@@ -4,44 +4,45 @@
     class="ship"
     :class="[`ship_${ship.type.toLowerCase()}`, { ship_rotated: ship.rotated }]"
     :style="shipStyles"
-  >
-    {{ ship.type }}
-  </div>
+    @dblclick="rotateShip"
+  />
 </template>
 <script setup lang="ts">
-import { computed } from "vue";
-import { type StyleValue } from "vue";
-import { toRefs } from "vue";
+import { toRefs } from "@vueuse/core";
+import { computed, type StyleValue } from "vue";
 import { useDrag, type DragSourceMonitor } from "vue3-dnd";
 import { Ship } from "~/model/Ship";
 
 const props = defineProps<{
   ship: Ship;
-  id: string;
   cellSize: number;
 }>();
 
 const shipStyles = computed<StyleValue>(() => {
   const { ship, cellSize } = props;
-  const [left, top] = [ship.x * cellSize, ship.y * cellSize]
+  const [left, top] = [ship.x * cellSize, ship.y * cellSize];
 
   return {
     "--size": `${cellSize}px`,
     transform: `translate3d(${left}px, ${top}px, 0)`,
-    opacity: isDragging ? 0 : 1,
-    height: isDragging ? 0 : "",
+    opacity: isDragging.value ? 0 : 1,
   };
 });
 
-const [collect, drag, preview] = useDrag(() => ({
+const [collect, drag] = useDrag(() => ({
   type: "Ship",
-  item: { ship: props.ship, id: props.id },
+  item: props.ship,
+
   collect: (monitor: DragSourceMonitor) => ({
     isDragging: monitor.isDragging(),
   }),
 }));
 
-const { value: isDragging } = toRefs(collect);
+const { isDragging } = toRefs(collect);
+
+const rotateShip = () => {
+  props.ship.rotate()
+}
 </script>
 <style scoped lang="scss">
 $cellSize: var(--size, 32px);
@@ -49,6 +50,7 @@ $cellSize: var(--size, 32px);
 .ship {
   position: absolute;
   cursor: grab;
+  border-radius: 16px;
 
   &.ship_rotated {
     width: $cellSize;

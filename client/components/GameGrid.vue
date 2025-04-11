@@ -5,9 +5,8 @@
       <div :ref="drop" class="grid">
         <div v-for="idx in gridSize * 10" :key="idx" class="grid-cell" />
         <ShipComponent
-          v-for="[key, ship] in createdShips"
-          :key="key"
-          :id="key"
+          v-for="(ship,idx) in createdShips"
+          :key="idx"
           :cell-size="cellSize"
           :ship="ship"
         />
@@ -18,7 +17,7 @@
 
 <script setup lang="ts">
 import { reactive } from "vue";
-import { useDrop, DndProvider } from "vue3-dnd";
+import { useDrop, DndProvider, type XYCoord } from "vue3-dnd";
 import ShipComponent from "./Ship.vue";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { Ship } from "~/model/Ship";
@@ -31,20 +30,12 @@ const props = withDefaults(
   }
 );
 
-const createdShips = reactive(
-  new Map<string, Ship>([
-    ["a", new Ship({ x: 2, y: 1, type: "BATTLESHIP", rotated: false })],
-    ["b", new Ship({ x: 2, y: 5, type: "CRUISERS", rotated: true })],
-  ])
-);
-
-const moveBox = (id: string, x: number, y: number) => {
-  const draggedShip = createdShips.get(id);
-
-  if (draggedShip) {
-    Object.assign(draggedShip, { x, y });
-  }
-};
+const createdShips = reactive([
+  new Ship({ x: 1, y: 1, type: "BATTLESHIP", rotated: false }),
+  new Ship({ x: 5, y: 5, type: "CRUISERS", rotated: true }),
+  new Ship({ x: 3, y: 4, type: "DESTROYER", rotated: true }),
+  new Ship({ x: 8, y: 7, type: "SUBMARINE", rotated: true }),
+]);
 
 const getTurtleCoordinates = (
   x: number,
@@ -57,49 +48,56 @@ const getTurtleCoordinates = (
   return { x: [x, xEnd], y: [y, yEnd] };
 };
 
-const canPlaceShip = (x: number, y: number, ship: Ship): boolean => {
-  const coords = getTurtleCoordinates(x, y, ship);
+const canPlaceShip = (x: number, y: number, placingShip: Ship): boolean => {
+  const placingCoords = getTurtleCoordinates(x, y, placingShip);
 
   return Array.from(createdShips)
-    .filter(([key, item]) => item !== ship)
-    .some(([id, ship]) => {
-      const placedCoords = getTurtleCoordinates(ship.x, ship.y, ship);
+    .filter((ship) => ship !== placingShip)
+    .every((ship) => {
+      const placedCoords = ship.coordinates;
 
+      // Проверка пересечения или соседства по оси X
       const xIntersectOrAdjacent =
-        (coords.x[0] <= placedCoords.x[1] + 1 && coords.x[1] >= placedCoords.x[0] - 1) ||
-        (placedCoords.x[0] <= coords.x[1] + 1 && placedCoords.x[1] >= coords.x[0] - 1);
+        (placingCoords.x[0] <= placedCoords.x[1] + 1 &&
+          placingCoords.x[1] >= placedCoords.x[0] - 1) ||
+        (placedCoords.x[0] <= placingCoords.x[1] + 1 &&
+          placedCoords.x[1] >= placingCoords.x[0] - 1);
 
       // Проверка пересечения или соседства по оси Y
       const yIntersectOrAdjacent =
-        (coords.y[0] <= placedCoords.y[1] + 1 && coords.y[1] >= placedCoords.y[0] - 1) ||
-        (placedCoords.y[0] <= coords.y[1] + 1 && placedCoords.y[1] >= coords.y[0] - 1);
+        (placingCoords.y[0] <= placedCoords.y[1] + 1 &&
+          placingCoords.y[1] >= placedCoords.y[0] - 1) ||
+        (placedCoords.y[0] <= placingCoords.y[1] + 1 &&
+          placedCoords.y[1] >= placingCoords.y[0] - 1);
 
-        return !(xIntersectOrAdjacent && yIntersectOrAdjacent)
+      return !(xIntersectOrAdjacent && yIntersectOrAdjacent);
     });
 };
 
+const getTargetCoordsFromPixels = (ship: Ship, delta: XYCoord) => {
+  const maxXYDefault = props.gridSize;
+    const maxXYRotated = maxXYDefault - ship.size;
+    const maxX = ship.rotated ? maxXYDefault : maxXYRotated;
+    const maxY = !ship.rotated ? maxXYDefault : maxXYRotated;
+
+    const roundedX = Math.round((ship.x * props.cellSize + delta.x) / props.cellSize);
+    const roundedY = Math.round((ship.y * props.cellSize + delta.y) / props.cellSize);
+    const x = Math.max(0, Math.min(roundedX, maxX));
+  const y = Math.max(0, Math.min(roundedY, maxY));
+
+  return [x, y]
+}
+
 const [, drop] = useDrop(() => ({
   accept: "Ship",
-  drop(item: { id: string; ship: Ship }, monitor) {
+  drop(ship: Ship, monitor) {
     const delta = monitor.getDifferenceFromInitialOffset();
     if (!delta) return;
 
-    const maxXYDefault = props.gridSize;
-    const maxXYRotated = maxXYDefault - item.ship.size;
-    const maxX = item.ship.rotated ? maxXYDefault : maxXYRotated;
-    const maxY = !item.ship.rotated ? maxXYDefault : maxXYRotated;
+    const [x, y] = getTargetCoordsFromPixels(ship, delta)
 
-    const roundedX = Math.round(
-      (item.ship.x * props.cellSize + delta.x) / props.cellSize
-    );
-    const roundedY = Math.round(
-      (item.ship.y * props.cellSize + delta.y) / props.cellSize
-    );
-    const x = Math.max(0, Math.min(roundedX, maxX));
-    const y = Math.max(0, Math.min(roundedY, maxY));
-
-    if (canPlaceShip(x, y, item.ship)) {
-      moveBox(item.id, x, y);
+    if (canPlaceShip(x, y, ship)) {
+      ship.setCoordinates(x, y)
     }
   },
 }));
