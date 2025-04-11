@@ -5,6 +5,8 @@ export enum Ships {
   BATTLESHIP = 4
 }
 
+export type ShipType = keyof typeof Ships
+
 export interface ShipCoordinates {
   x: [number, number],
   y: [number, number]
@@ -16,7 +18,7 @@ export class Ship {
   public x: number;
   public y: number;
   public size: number;
-  public type: keyof typeof Ships;
+  public type: ShipType;
   public rotated: boolean;
   public coordinates!: ShipCoordinates;
 

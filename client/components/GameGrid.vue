@@ -5,12 +5,18 @@
       <div :ref="drop" class="grid">
         <div v-for="idx in gridSize * 10" :key="idx" class="grid-cell" />
         <ShipComponent
-          v-for="(ship,idx) in createdShips"
+          v-for="(ship, idx) in createdShips"
           :key="idx"
           :cell-size="cellSize"
           :ship="ship"
         />
       </div>
+    </div>
+    <div class="copy-ships">
+      <CopyShip :cell-size="cellSize" ship-type="BATTLESHIP" />
+      <CopyShip :cell-size="cellSize" ship-type="CRUISERS" />
+      <CopyShip :cell-size="cellSize" ship-type="DESTROYER" />
+      <CopyShip :cell-size="cellSize" ship-type="SUBMARINE" />
     </div>
   </DndProvider>
 </template>
@@ -20,12 +26,13 @@ import { reactive } from "vue";
 import { useDrop, DndProvider, type XYCoord } from "vue3-dnd";
 import ShipComponent from "./Ship.vue";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { Ship } from "~/model/Ship";
+import { Ship, type ShipType } from "~/model/Ship";
+import CopyShip from "./CopyShip.vue";
 
 const props = withDefaults(
   defineProps<{ cellSize?: number; gridSize?: number }>(),
   {
-    cellSize: 50,
+    cellSize: 48,
     gridSize: 10,
   }
 );
@@ -74,31 +81,46 @@ const canPlaceShip = (x: number, y: number, placingShip: Ship): boolean => {
     });
 };
 
-const getTargetCoordsFromPixels = (ship: Ship, delta: XYCoord) => {
-  const maxXYDefault = props.gridSize;
-    const maxXYRotated = maxXYDefault - ship.size;
-    const maxX = ship.rotated ? maxXYDefault : maxXYRotated;
-    const maxY = !ship.rotated ? maxXYDefault : maxXYRotated;
+const getDropPositionCoords = (delta: XYCoord) => {
 
-    const roundedX = Math.round((ship.x * props.cellSize + delta.x) / props.cellSize);
-    const roundedY = Math.round((ship.y * props.cellSize + delta.y) / props.cellSize);
-    const x = Math.max(0, Math.min(roundedX, maxX));
-  const y = Math.max(0, Math.min(roundedY, maxY));
-
-  return [x, y]
 }
 
+const getTargetCoordsFromPixels = (ship: Ship, delta: XYCoord) => {
+  const maxXYDefault = props.gridSize;
+  const maxXYRotated = maxXYDefault - ship.size;
+  const maxX = ship.rotated ? maxXYDefault : maxXYRotated;
+  const maxY = !ship.rotated ? maxXYDefault : maxXYRotated;
+
+  const roundedX = Math.round(
+    (ship.x * props.cellSize + delta.x) / props.cellSize
+  );
+  const roundedY = Math.round(
+    (ship.y * props.cellSize + delta.y) / props.cellSize
+  );
+  const x = Math.max(0, Math.min(roundedX, maxX));
+  const y = Math.max(0, Math.min(roundedY, maxY));
+
+  return [x, y];
+};
+
 const [, drop] = useDrop(() => ({
-  accept: "Ship",
-  drop(ship: Ship, monitor) {
+  accept: ["Ship", "CopyShip"],
+  drop(ship: Ship | ShipType, monitor) {
+    console.log(monitor.getClientOffset())
     const delta = monitor.getDifferenceFromInitialOffset();
-    if (!delta) return;
+    const dragType = monitor.getItemType()
+    if (!delta || !dragType) return;
 
-    const [x, y] = getTargetCoordsFromPixels(ship, delta)
-
-    if (canPlaceShip(x, y, ship)) {
-      ship.setCoordinates(x, y)
+    if (dragType === 'CopyShip') {
+      const newShip = new Ship({ type: ship as ShipType, rotated: false })
+    } else {
+      const [x, y] = getTargetCoordsFromPixels(ship, delta);
+  
+      if (canPlaceShip(x, y, ship)) {
+        ship.setCoordinates(x, y);
+      }
     }
+
   },
 }));
 </script>
