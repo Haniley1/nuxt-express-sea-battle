@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from "vue";
+import { reactive, ref } from "vue";
 import { useDrop, DndProvider, type XYCoord } from "vue3-dnd";
 import ShipComponent from "./Ship.vue";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -36,6 +36,41 @@ const props = withDefaults(
     gridSize: 10,
   }
 );
+
+const [, drop] = useDrop(() => ({
+  accept: ["Ship", "CopyShip"],
+  drop(_, monitor) {
+    const delta = monitor.getDifferenceFromInitialOffset();
+    const dragType = monitor.getItemType();
+    if (!delta || !dragType) return;
+
+    if (dragType === "CopyShip") {
+      console.log(getTargetPoint(monitor.getClientOffset()!))
+      const type = monitor.getItem<ShipType>()
+      console.log(type)
+      const [x,y] = getTargetPoint(monitor.getClientOffset()!)
+      const newShip = new Ship({ type, rotated: false, x, y });
+      createdShips.push(newShip)
+    } else {
+      const ship = monitor.getItem<Ship>()
+      const [x, y] = getTargetCoordsFromPixels(ship, delta);
+
+      if (canPlaceShip(x, y, ship)) {
+        ship.setCoordinates(x, y);
+      }
+    }
+  },
+}));
+
+const getTargetPoint = (delta: XYCoord) => {
+  const gridEl = document.querySelector('.sea-battle .grid')
+  const gridDelta = gridEl?.getBoundingClientRect()!
+
+  const gridX = delta.x - gridDelta.x
+  const gridY = delta.y - gridDelta.y
+
+  return [Math.round(gridX / props.cellSize), Math.round(gridY / props.cellSize)]
+}
 
 const createdShips = reactive([
   new Ship({ x: 1, y: 1, type: "BATTLESHIP", rotated: false }),
@@ -83,7 +118,7 @@ const canPlaceShip = (x: number, y: number, placingShip: Ship): boolean => {
 
 const getDropPositionCoords = (delta: XYCoord) => {
 
-}
+};
 
 const getTargetCoordsFromPixels = (ship: Ship, delta: XYCoord) => {
   const maxXYDefault = props.gridSize;
@@ -102,27 +137,6 @@ const getTargetCoordsFromPixels = (ship: Ship, delta: XYCoord) => {
 
   return [x, y];
 };
-
-const [, drop] = useDrop(() => ({
-  accept: ["Ship", "CopyShip"],
-  drop(ship: Ship | ShipType, monitor) {
-    console.log(monitor.getClientOffset())
-    const delta = monitor.getDifferenceFromInitialOffset();
-    const dragType = monitor.getItemType()
-    if (!delta || !dragType) return;
-
-    if (dragType === 'CopyShip') {
-      const newShip = new Ship({ type: ship as ShipType, rotated: false })
-    } else {
-      const [x, y] = getTargetCoordsFromPixels(ship, delta);
-  
-      if (canPlaceShip(x, y, ship)) {
-        ship.setCoordinates(x, y);
-      }
-    }
-
-  },
-}));
 </script>
 
 <style scoped lang="scss">
