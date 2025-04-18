@@ -12,22 +12,18 @@
         />
       </div>
     </div>
-    <div class="copy-ships">
-      <CopyShip :cell-size="cellSize" ship-type="BATTLESHIP" />
-      <CopyShip :cell-size="cellSize" ship-type="CRUISERS" />
-      <CopyShip :cell-size="cellSize" ship-type="DESTROYER" />
-      <CopyShip :cell-size="cellSize" ship-type="SUBMARINE" />
-    </div>
+    <button @click="createdShips.length = 0">Очистить поле</button>
+    <InitialShips :ships="createdShips" />
   </DndProvider>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { reactive } from "vue";
 import { useDrop, DndProvider, type XYCoord } from "vue3-dnd";
 import ShipComponent from "./Ship.vue";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { Ship, type ShipType } from "~/model/Ship";
-import CopyShip from "./CopyShip.vue";
+import { Ship, Ships, type ShipType } from "~/model/Ship";
+import InitialShips from "./InitialShips.vue";
 
 const props = withDefaults(
   defineProps<{ cellSize?: number; gridSize?: number }>(),
@@ -37,23 +33,27 @@ const props = withDefaults(
   }
 );
 
+const createdShips = reactive([
+  new Ship({ x: 1, y: 1, type: "BATTLESHIP", rotated: false }),
+]);
+
 const [, drop] = useDrop(() => ({
   accept: ["Ship", "CopyShip"],
   drop(_, monitor) {
-    const delta = monitor.getDifferenceFromInitialOffset();
-    const dragType = monitor.getItemType();
-    if (!delta || !dragType) return;
+    const delta = monitor.getDifferenceFromInitialOffset()!;
+    const dragType = monitor.getItemType()!;
 
     if (dragType === "CopyShip") {
-      console.log(getTargetPoint(monitor.getClientOffset()!))
-      const type = monitor.getItem<ShipType>()
-      console.log(type)
-      const [x,y] = getTargetPoint(monitor.getClientOffset()!)
+      const { type } = monitor.getItem<{ type: ShipType }>();
+      const [x, y] = getTargetCoordsFromPixels(Ships[type], false, monitor.getClientOffset()!);
       const newShip = new Ship({ type, rotated: false, x, y });
-      createdShips.push(newShip)
+
+      if (canPlaceShip(x, y, newShip)) {
+        createdShips.push(newShip);
+      }
     } else {
-      const ship = monitor.getItem<Ship>()
-      const [x, y] = getTargetCoordsFromPixels(ship, delta);
+      const ship = monitor.getItem<Ship>();
+      const [x, y] = getTargetCoordsFromPixels(ship.size, ship.rotated, monitor.getClientOffset()!);
 
       if (canPlaceShip(x, y, ship)) {
         ship.setCoordinates(x, y);
@@ -63,21 +63,18 @@ const [, drop] = useDrop(() => ({
 }));
 
 const getTargetPoint = (delta: XYCoord) => {
-  const gridEl = document.querySelector('.sea-battle .grid')
-  const gridDelta = gridEl?.getBoundingClientRect()!
+  // TODO: Получать элемент через рефку
+  const gridEl = document.querySelector(".sea-battle .grid");
+  const gridDelta = gridEl?.getBoundingClientRect()!;
 
-  const gridX = delta.x - gridDelta.x
-  const gridY = delta.y - gridDelta.y
+  const gridX = delta.x - gridDelta.x;
+  const gridY = delta.y - gridDelta.y;
 
-  return [Math.round(gridX / props.cellSize), Math.round(gridY / props.cellSize)]
-}
-
-const createdShips = reactive([
-  new Ship({ x: 1, y: 1, type: "BATTLESHIP", rotated: false }),
-  new Ship({ x: 5, y: 5, type: "CRUISERS", rotated: true }),
-  new Ship({ x: 3, y: 4, type: "DESTROYER", rotated: true }),
-  new Ship({ x: 8, y: 7, type: "SUBMARINE", rotated: true }),
-]);
+  return [
+    Math.round((gridX - props.cellSize) / props.cellSize),
+    Math.round((gridY - props.cellSize) / props.cellSize),
+  ];
+};
 
 const getTurtleCoordinates = (
   x: number,
@@ -116,22 +113,21 @@ const canPlaceShip = (x: number, y: number, placingShip: Ship): boolean => {
     });
 };
 
-const getDropPositionCoords = (delta: XYCoord) => {
+const getTargetCoordsFromPixels = (shipSize: number, shipRotated: boolean, delta: XYCoord) => {
+    // TODO: Получать элемент через рефку
+    const gridEl = document.querySelector(".sea-battle .grid");
+  const gridDelta = gridEl?.getBoundingClientRect()!;
 
-};
+  const gridX = delta.x - gridDelta.x;
+  const gridY = delta.y - gridDelta.y;
 
-const getTargetCoordsFromPixels = (ship: Ship, delta: XYCoord) => {
   const maxXYDefault = props.gridSize;
-  const maxXYRotated = maxXYDefault - ship.size;
-  const maxX = ship.rotated ? maxXYDefault : maxXYRotated;
-  const maxY = !ship.rotated ? maxXYDefault : maxXYRotated;
+  const maxXYRotated = maxXYDefault - shipSize;
+  const maxX = shipRotated ? maxXYDefault : maxXYRotated;
+  const maxY = !shipRotated ? maxXYDefault : maxXYRotated;
 
-  const roundedX = Math.round(
-    (ship.x * props.cellSize + delta.x) / props.cellSize
-  );
-  const roundedY = Math.round(
-    (ship.y * props.cellSize + delta.y) / props.cellSize
-  );
+  const roundedX = Math.round((gridX - props.cellSize) / props.cellSize);
+  const roundedY = Math.round((gridY - props.cellSize) / props.cellSize);
   const x = Math.max(0, Math.min(roundedX, maxX));
   const y = Math.max(0, Math.min(roundedY, maxY));
 
@@ -165,5 +161,11 @@ $cellSize: var(--size, 32px);
   align-items: center;
   justify-content: center;
   cursor: default;
+}
+
+.copy-ships {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
 }
 </style>

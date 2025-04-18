@@ -2,26 +2,28 @@
   <div
     :ref="drag"
     class="ship"
-    :class="[`ship_${shipType.toLowerCase()}`]"
+    :class="[`ship_${shipType.toLowerCase()}`, !canCreate && 'ship_disabled']"
     :style="{ '--size': `${cellSize}px` }"
   />
 </template>
 
 <script setup lang="ts">
-import { useDrag, type DragSourceMonitor } from "vue3-dnd";
+import { useDrag } from "vue3-dnd";
 import type { ShipType } from "~/model/Ship";
 
 const props = defineProps<{
   cellSize: number;
   shipType: ShipType;
+  canCreate: boolean
 }>();
 
 const [collect, drag] = useDrag(() => ({
   type: "CopyShip",
-  item: props.shipType,
+  item: { type: props.shipType },
   options: {
     dropEffect: "copy",
   },
+  canDrag: () => props.canCreate
 }));
 </script>
 
@@ -29,12 +31,16 @@ const [collect, drag] = useDrag(() => ({
 $cellSize: var(--size, 32px);
 
 .ship {
-  position: absolute;
   cursor: grab;
   border-radius: 16px;
 
   &.ship_rotated {
     width: $cellSize;
+  }
+
+  &.ship_disabled {
+    opacity: .5;
+    cursor: not-allowed;
   }
 
   &:not(.ship-rotated) {
