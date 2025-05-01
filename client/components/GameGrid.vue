@@ -34,26 +34,26 @@ const props = withDefaults(
 );
 
 const createdShips = reactive([
-  new Ship({ x: 1, y: 1, type: "BATTLESHIP", rotated: false }),
+  new Ship({ x: 1, y: 1, type: "BATTLESHIP", rotated: false, hits: [1, 3] }),
 ]);
 
 const [, drop] = useDrop(() => ({
   accept: ["Ship", "CopyShip"],
   drop(_, monitor) {
-    const delta = monitor.getDifferenceFromInitialOffset()!;
+    const delta = monitor.getClientOffset()!;
     const dragType = monitor.getItemType()!;
 
     if (dragType === "CopyShip") {
       const { type } = monitor.getItem<{ type: ShipType }>();
-      const [x, y] = getTargetCoordsFromPixels(Ships[type], false, monitor.getClientOffset()!);
+      const [x, y] = getTargetCoordsFromPixels(Ships[type], false, delta);
       const newShip = new Ship({ type, rotated: false, x, y });
 
       if (canPlaceShip(x, y, newShip)) {
         createdShips.push(newShip);
       }
-    } else {
+    } else if (dragType === 'Ship') {
       const ship = monitor.getItem<Ship>();
-      const [x, y] = getTargetCoordsFromPixels(ship.size, ship.rotated, monitor.getClientOffset()!);
+      const [x, y] = getTargetCoordsFromPixels(ship.size, ship.rotated, delta);
 
       if (canPlaceShip(x, y, ship)) {
         ship.setCoordinates(x, y);
@@ -61,20 +61,6 @@ const [, drop] = useDrop(() => ({
     }
   },
 }));
-
-const getTargetPoint = (delta: XYCoord) => {
-  // TODO: Получать элемент через рефку
-  const gridEl = document.querySelector(".sea-battle .grid");
-  const gridDelta = gridEl?.getBoundingClientRect()!;
-
-  const gridX = delta.x - gridDelta.x;
-  const gridY = delta.y - gridDelta.y;
-
-  return [
-    Math.round((gridX - props.cellSize) / props.cellSize),
-    Math.round((gridY - props.cellSize) / props.cellSize),
-  ];
-};
 
 const getTurtleCoordinates = (
   x: number,
@@ -113,9 +99,13 @@ const canPlaceShip = (x: number, y: number, placingShip: Ship): boolean => {
     });
 };
 
-const getTargetCoordsFromPixels = (shipSize: number, shipRotated: boolean, delta: XYCoord) => {
-    // TODO: Получать элемент через рефку
-    const gridEl = document.querySelector(".sea-battle .grid");
+const getTargetCoordsFromPixels = (
+  shipSize: number,
+  shipRotated: boolean,
+  delta: XYCoord
+) => {
+  // TODO: Получать элемент через рефку
+  const gridEl = document.querySelector(".sea-battle .grid");
   const gridDelta = gridEl?.getBoundingClientRect()!;
 
   const gridX = delta.x - gridDelta.x;
@@ -126,8 +116,8 @@ const getTargetCoordsFromPixels = (shipSize: number, shipRotated: boolean, delta
   const maxX = shipRotated ? maxXYDefault : maxXYRotated;
   const maxY = !shipRotated ? maxXYDefault : maxXYRotated;
 
-  const roundedX = Math.round((gridX - props.cellSize) / props.cellSize);
-  const roundedY = Math.round((gridY - props.cellSize) / props.cellSize);
+  const roundedX = Math.ceil((gridX - props.cellSize) / props.cellSize);
+  const roundedY = Math.ceil((gridY - props.cellSize) / props.cellSize);
   const x = Math.max(0, Math.min(roundedX, maxX));
   const y = Math.max(0, Math.min(roundedY, maxY));
 

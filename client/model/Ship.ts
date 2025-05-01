@@ -12,7 +12,7 @@ export interface ShipCoordinates {
   y: [number, number]
 }
 
-type ShipProps = Pick<Ship, 'type' | 'rotated' | 'x' | 'y'>
+type ShipProps = Pick<Ship, 'type' | 'rotated' | 'x' | 'y' | 'hits'>
 
 export class Ship {
   public x: number;
@@ -20,6 +20,7 @@ export class Ship {
   public size: number;
   public type: ShipType;
   public rotated: boolean;
+  public hits?: number[];
   public coordinates!: ShipCoordinates;
 
   constructor(props: ShipProps) {
@@ -28,6 +29,7 @@ export class Ship {
     this.size = Ships[this.type]
     this.x = props.x
     this.y = props.y
+    this.hits = props.hits || []
     this.setCoordinates(props.x, props.y)
   }
 
