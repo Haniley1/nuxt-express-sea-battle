@@ -69,7 +69,8 @@ $cellSize: var(--size, 32px);
 
 .ship {
   position: absolute;
-  background-color: grey;
+  background-color: white;
+  border: 2px solid black;
 
   &.ship_rotated {
     width: $cellSize;
@@ -148,14 +149,14 @@ $cellSize: var(--size, 32px);
     position: absolute;
     width: $cellSize;
     height: $cellSize;
-    border: 1px solid red;
+    border: 3px dashed darkred;
 
     &::before, &::after {
       content: '';
       display: block;
       position: absolute;
       top: 50%;
-      background-color:red;
+      background-color:darkred;
       width: 100%;
       height: 2px;
     }

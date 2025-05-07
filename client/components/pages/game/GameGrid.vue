@@ -139,11 +139,11 @@ $cellSize: var(--size, 32px);
   display: grid;
   grid-template-columns: repeat(10, $cellSize);
   grid-template-rows: repeat(10, $cellSize);
-  border: 1px solid #000;
+  border: 5px dotted black;
 }
 
 .grid-cell {
-  border: 1px solid #ccc;
+  border: 2px solid black;
   display: flex;
   align-items: center;
   justify-content: center;
