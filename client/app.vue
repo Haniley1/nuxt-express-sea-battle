@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import GameGrid from './components/GameGrid.vue';
-import { DndProvider } from "vue3-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import { DndProvider } from "vue3-dnd";
 </script>
 
 <template>
-  <div>
-  <DndProvider :backend="HTML5Backend">
-    <GameGrid />
-  </DndProvider>
-  </div>
+  <NuxtLayout>
+    <DndProvider :backend="HTML5Backend">
+      <NuxtPage />
+    </DndProvider>
+  </NuxtLayout>
 </template>

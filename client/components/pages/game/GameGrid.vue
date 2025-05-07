@@ -1,27 +1,24 @@
 <template>
-  <DndProvider :backend="HTML5Backend">
-    <div class="sea-battle" :style="{ '--size': `${cellSize}px` }">
-      <!-- Игровая сетка -->
-      <div :ref="drop" class="grid">
-        <div v-for="idx in gridSize * 10" :key="idx" class="grid-cell" />
-        <ShipComponent
-          v-for="(ship, idx) in createdShips"
-          :key="idx"
-          :cell-size="cellSize"
-          :ship="ship"
-        />
-      </div>
+  <div class="sea-battle" :style="{ '--size': `${cellSize}px` }">
+    <!-- Игровая сетка -->
+    <div :ref="drop" class="grid">
+      <div v-for="idx in gridSize * 10" :key="idx" class="grid-cell" />
+      <ShipComponent
+        v-for="(ship, idx) in createdShips"
+        :key="idx"
+        :cell-size="cellSize"
+        :ship="ship"
+      />
     </div>
     <button @click="createdShips.length = 0">Очистить поле</button>
     <InitialShips :ships="createdShips" />
-  </DndProvider>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { reactive } from "vue";
-import { useDrop, DndProvider, type XYCoord } from "vue3-dnd";
+import { useDrop, type XYCoord } from "vue3-dnd";
 import ShipComponent from "./Ship.vue";
-import { HTML5Backend } from "react-dnd-html5-backend";
 import { Ship, Ships, type ShipType } from "~/model/Ship";
 import InitialShips from "./InitialShips.vue";
 
@@ -34,7 +31,7 @@ const props = withDefaults(
 );
 
 const createdShips = reactive([
-  new Ship({ x: 1, y: 1, type: "BATTLESHIP", rotated: false, hits: [1, 3] }),
+  new Ship({ x: 1, y: 1, type: "BATTLESHIP", rotated: false, hits: [2, 3] }),
 ]);
 
 const [, drop] = useDrop(() => ({
@@ -51,7 +48,7 @@ const [, drop] = useDrop(() => ({
       if (canPlaceShip(x, y, newShip)) {
         createdShips.push(newShip);
       }
-    } else if (dragType === 'Ship') {
+    } else if (dragType === "Ship") {
       const ship = monitor.getItem<Ship>();
       const [x, y] = getTargetCoordsFromPixels(ship.size, ship.rotated, delta);
 
