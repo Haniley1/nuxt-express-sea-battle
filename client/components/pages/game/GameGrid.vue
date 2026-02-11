@@ -3,7 +3,7 @@
     <!-- Игровая сетка -->
     <div :ref="drop" class="grid">
       <div v-for="idx in gridSize * 10" :key="idx" class="grid-cell" />
-      <ShipComponent
+      <BaseShip
         v-for="(ship, idx) in createdShips"
         :key="idx"
         :cell-size="cellSize"
@@ -11,16 +11,14 @@
       />
     </div>
     <button @click="createdShips.length = 0">Очистить поле</button>
-    <InitialShips :ships="createdShips" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { reactive } from "vue";
 import { useDrop, type XYCoord } from "vue3-dnd";
-import ShipComponent from "./Ship.vue";
-import { Ship, Ships, type ShipType } from "~/model/Ship";
-import InitialShips from "./InitialShips.vue";
+import BaseShip from "@components/ship/BaseShip.vue";
+import { Ship } from "~/model/Ship";
 
 const props = withDefaults(
   defineProps<{ cellSize?: number; gridSize?: number }>(),
@@ -40,15 +38,7 @@ const [, drop] = useDrop(() => ({
     const delta = monitor.getClientOffset()!;
     const dragType = monitor.getItemType()!;
 
-    if (dragType === "CopyShip") {
-      const { type } = monitor.getItem<{ type: ShipType }>();
-      const [x, y] = getTargetCoordsFromPixels(Ships[type], false, delta);
-      const newShip = new Ship({ type, rotated: false, x, y });
-
-      if (canPlaceShip(x, y, newShip)) {
-        createdShips.push(newShip);
-      }
-    } else if (dragType === "Ship") {
+    if (dragType === "Ship") {
       const ship = monitor.getItem<Ship>();
       const [x, y] = getTargetCoordsFromPixels(ship.size, ship.rotated, delta);
 

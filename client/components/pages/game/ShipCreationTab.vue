@@ -1,5 +1,5 @@
 <template>
-<div class="game">
+<div class="ship-creation-tab">
   
 </div>
 </template>
@@ -8,6 +8,6 @@
 
 </script>
 
-<style lang="scss" scoped>
+<style scoped lang="scss">
 
 </style>

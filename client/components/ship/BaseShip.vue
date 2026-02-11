@@ -1,40 +1,55 @@
 <template>
-  <div
-    :ref="preview"
-    class="ship"
-    :class="[`ship_${ship.type.toLowerCase()}`, { ship_rotated: ship.rotated }]"
-    :style="shipStyles"
-    @dblclick="rotateShip"
+<div 
+  :ref="preview" 
+  class="base-ship"
+  :style="shipStyles"
+>
+  <ShipSprite 
+    :ship="ship"
+    :dragging="isDragging"
   >
     <div 
       :ref="drag"
-      class="ship__drag-handler" 
+      class="base-ship__drag-handler"
+      @dblclick="rotateShip"
     />
     <div 
       v-for="hit in ship.hits"
       :key="hit"
-      class="ship__hit"
+      class="base-ship__hit"
       :style="getHitStyles(hit)"
     />
-  </div>
+  </ShipSprite>
+</div>
 </template>
 <script setup lang="ts">
 import { toRefs } from "@vueuse/core";
 import { computed, type StyleValue } from "vue";
 import { useDrag, type DragSourceMonitor } from "vue3-dnd";
 import { Ship } from "~/model/Ship";
+import ShipSprite from "./ShipSprite.vue";
+import { BASE_CELL_SIZE } from "~/static/data/constants";
 
 const props = defineProps<{
   ship: Ship;
   cellSize: number;
 }>();
 
+const [collect, drag, preview] = useDrag(() => ({
+  type: "Ship",
+  item: props.ship,
+
+  collect: (monitor: DragSourceMonitor) => ({
+    isDragging: monitor.isDragging(),
+  }),
+}));
+const { isDragging } = toRefs(collect);
+
 const shipStyles = computed<StyleValue>(() => {
-  const { ship, cellSize } = props;
-  const [left, top] = [ship.x * cellSize, ship.y * cellSize];
+  const [left, top] = [props.ship.x * BASE_CELL_SIZE, props.ship.y * BASE_CELL_SIZE];
 
   return {
-    "--size": `${cellSize}px`,
+    "--size": `${BASE_CELL_SIZE}px`,
     transform: `translate3d(${left}px, ${top}px, 0)`,
     opacity: isDragging.value ? 0 : 1,
   };
@@ -49,34 +64,22 @@ const getHitStyles = (hit: number): StyleValue => {
   }
 }
 
-const [collect, drag, preview] = useDrag(() => ({
-  type: "Ship",
-  item: props.ship,
-
-  collect: (monitor: DragSourceMonitor) => ({
-    isDragging: monitor.isDragging(),
-  }),
-}));
-
-const { isDragging } = toRefs(collect);
-
 const rotateShip = () => {
+  console.log('ROTATE')
   props.ship.rotate()
 }
 </script>
 <style scoped lang="scss">
 $cellSize: var(--size, 32px);
 
-.ship {
+.base-ship {
   position: absolute;
-  background-color: white;
-  border: 2px solid black;
 
   &.ship_rotated {
     width: $cellSize;
   }
 
-  &.ship_rotated .ship__drag-handler {
+  &.ship_rotated .base-ship__drag-handler {
     top: 16px;
     left: 50%;
     transform: translateX(-50%);

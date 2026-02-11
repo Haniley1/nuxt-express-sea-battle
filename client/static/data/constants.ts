@@ -1,0 +1,1 @@
+export const BASE_CELL_SIZE = 48;

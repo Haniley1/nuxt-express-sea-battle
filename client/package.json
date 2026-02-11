@@ -22,6 +22,7 @@
     "vue3-dnd": "^2.1.0"
   },
   "devDependencies": {
+    "@types/node": "^25.2.3",
     "sass-embedded": "^1.86.0"
   }
 }
