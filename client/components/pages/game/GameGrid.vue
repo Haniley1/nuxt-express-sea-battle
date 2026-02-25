@@ -1,50 +1,65 @@
 <template>
-  <div class="sea-battle" :style="{ '--size': `${cellSize}px` }">
+  <div class="game-grid" :style="{ '--cell-size': `${cellSize}px` }">
     <!-- Игровая сетка -->
-    <div :ref="drop" class="grid">
-      <div v-for="idx in gridSize * 10" :key="idx" class="grid-cell" />
-      <BaseShip
-        v-for="(ship, idx) in createdShips"
+    <div :ref="drop" class="game-grid__grid">
+      <div 
+        v-for="idx in 10 * 10" 
+        :key="idx" 
+        class="game-grid__grid-cell" 
+      />
+      <DraggableShip
+        v-for="(ship, idx) in ships"
         :key="idx"
+        class="game-grid__grid-ship"
         :cell-size="cellSize"
         :ship="ship"
       />
     </div>
-    <button @click="createdShips.length = 0">Очистить поле</button>
+    <button @click="ships.length = 0">Очистить поле</button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive } from "vue";
+import { provide } from "vue";
 import { useDrop, type XYCoord } from "vue3-dnd";
-import BaseShip from "@components/ship/BaseShip.vue";
+import DraggableShip from "~/components/ship/DraggableShip.vue";
 import { Ship } from "~/model/Ship";
 
 const props = withDefaults(
-  defineProps<{ cellSize?: number; gridSize?: number }>(),
+  defineProps<{
+    ships: Ship[];
+    cellSize?: number;
+  }>(),
   {
     cellSize: 48,
-    gridSize: 10,
   }
 );
 
-const createdShips = reactive([
-  new Ship({ x: 1, y: 1, type: "BATTLESHIP", rotated: false, hits: [2, 3] }),
-]);
+const emit = defineEmits<{
+  'ship-add': [Ship]
+}>()
+
+provide('cellSize', props.cellSize)
 
 const [, drop] = useDrop(() => ({
-  accept: ["Ship", "CopyShip"],
+  accept: ["Ship", "NewShip"],
   drop(_, monitor) {
     const delta = monitor.getClientOffset()!;
     const dragType = monitor.getItemType()!;
+    const ship = monitor.getItem<Ship>();
+    const [x, y] = getTargetCoordsFromPixels(ship.size, ship.rotated, delta);
 
+    if (!canPlaceShip(x, y, ship)) {
+      return
+    }
+    
     if (dragType === "Ship") {
-      const ship = monitor.getItem<Ship>();
-      const [x, y] = getTargetCoordsFromPixels(ship.size, ship.rotated, delta);
+      ship.setCoordinates(x, y);
+    } else if (dragType === "NewShip") {
+      const newShip = new Ship({ x, y, type: ship.type, rotated: false })
+      newShip.setCoordinates(x, y)
 
-      if (canPlaceShip(x, y, ship)) {
-        ship.setCoordinates(x, y);
-      }
+      emit('ship-add', newShip)
     }
   },
 }));
@@ -63,7 +78,7 @@ const getTurtleCoordinates = (
 const canPlaceShip = (x: number, y: number, placingShip: Ship): boolean => {
   const placingCoords = getTurtleCoordinates(x, y, placingShip);
 
-  return Array.from(createdShips)
+  return Array.from(props.ships)
     .filter((ship) => ship !== placingShip)
     .every((ship) => {
       const placedCoords = ship.coordinates;
@@ -92,13 +107,13 @@ const getTargetCoordsFromPixels = (
   delta: XYCoord
 ) => {
   // TODO: Получать элемент через рефку
-  const gridEl = document.querySelector(".sea-battle .grid");
+  const gridEl = document.querySelector(".game-grid__grid");
   const gridDelta = gridEl?.getBoundingClientRect()!;
 
   const gridX = delta.x - gridDelta.x;
   const gridY = delta.y - gridDelta.y;
 
-  const maxXYDefault = props.gridSize;
+  const maxXYDefault = 10;
   const maxXYRotated = maxXYDefault - shipSize;
   const maxX = shipRotated ? maxXYDefault : maxXYRotated;
   const maxY = !shipRotated ? maxXYDefault : maxXYRotated;
@@ -113,9 +128,9 @@ const getTargetCoordsFromPixels = (
 </script>
 
 <style scoped lang="scss">
-$cellSize: var(--size, 32px);
+$cellSize: var(--cell-size, 32px);
 
-.sea-battle {
+.game-grid {
   position: relative;
   height: 100vh;
   display: flex;
@@ -123,26 +138,26 @@ $cellSize: var(--size, 32px);
   justify-content: center;
   align-items: center;
   gap: 20px;
-}
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(10, $cellSize);
-  grid-template-rows: repeat(10, $cellSize);
-  border: 5px dotted black;
-}
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(10, $cellSize);
+    grid-template-rows: repeat(10, $cellSize);
+    border: 2px dashed black;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.3);
 
-.grid-cell {
-  border: 2px solid black;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: default;
-}
+    &-cell {
+      border: 1px solid black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: default;
+    }
 
-.copy-ships {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
+    &-ship {
+      position: absolute;
+    }
+  }
 }
 </style>

@@ -1,57 +1,44 @@
 <template>
-<div 
-  :ref="preview" 
+<div
+  :ref="preview"
   class="base-ship"
   :style="shipStyles"
 >
   <ShipSprite 
     :ship="ship"
-    :dragging="isDragging"
+    :dragging="dragging"
   >
+    <slot />
     <div 
-      :ref="drag"
-      class="base-ship__drag-handler"
-      @dblclick="rotateShip"
-    />
-    <div 
-      v-for="hit in ship.hits"
-      :key="hit"
-      class="base-ship__hit"
-      :style="getHitStyles(hit)"
+      v-for="hit in ship.hits" 
+      :key="hit" 
+      class="base-ship__hit" 
+      :style="getHitStyles(hit)" 
     />
   </ShipSprite>
 </div>
 </template>
 <script setup lang="ts">
-import { toRefs } from "@vueuse/core";
 import { computed, type StyleValue } from "vue";
-import { useDrag, type DragSourceMonitor } from "vue3-dnd";
 import { Ship } from "~/model/Ship";
 import ShipSprite from "./ShipSprite.vue";
 import { BASE_CELL_SIZE } from "~/static/data/constants";
+import type { ConnectDragPreview, DragPreviewOptions } from "vue3-dnd";
 
 const props = defineProps<{
   ship: Ship;
   cellSize: number;
+  dragging?: boolean;
+  preview?: ConnectDragPreview<DragPreviewOptions>
 }>();
-
-const [collect, drag, preview] = useDrag(() => ({
-  type: "Ship",
-  item: props.ship,
-
-  collect: (monitor: DragSourceMonitor) => ({
-    isDragging: monitor.isDragging(),
-  }),
-}));
-const { isDragging } = toRefs(collect);
 
 const shipStyles = computed<StyleValue>(() => {
   const [left, top] = [props.ship.x * BASE_CELL_SIZE, props.ship.y * BASE_CELL_SIZE];
 
   return {
-    "--size": `${BASE_CELL_SIZE}px`,
+    "--cell-size": `${BASE_CELL_SIZE}px`,
     transform: `translate3d(${left}px, ${top}px, 0)`,
-    opacity: isDragging.value ? 0 : 1,
+    opacity: props.dragging ? 0 : 1,
   };
 });
 
@@ -63,18 +50,11 @@ const getHitStyles = (hit: number): StyleValue => {
     [propertyName]: `${position}px`
   }
 }
-
-const rotateShip = () => {
-  console.log('ROTATE')
-  props.ship.rotate()
-}
 </script>
 <style scoped lang="scss">
-$cellSize: var(--size, 32px);
+$cellSize: var(--cell-size, 32px);
 
 .base-ship {
-  position: absolute;
-
   &.ship_rotated {
     width: $cellSize;
   }
@@ -83,10 +63,6 @@ $cellSize: var(--size, 32px);
     top: 16px;
     left: 50%;
     transform: translateX(-50%);
-  }
-
-  &:not(.ship-rotated) {
-    height: $cellSize;
   }
 
   &.ship_submarine {
@@ -137,22 +113,11 @@ $cellSize: var(--size, 32px);
     }
   }
 
-  &__drag-handler {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    left: 16px;
-    width: 16px;
-    height: 16px;
-    background-color: black;
-    cursor: grab;
-  }
-
   &__hit {
     position: absolute;
     width: $cellSize;
     height: $cellSize;
-    border: 3px dashed darkred;
+    border: 2px dashed darkred;
 
     &::before, &::after {
       content: '';

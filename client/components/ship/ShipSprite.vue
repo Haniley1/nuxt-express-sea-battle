@@ -16,11 +16,11 @@ const { ship } = defineProps<{
 </script>
 
 <style scoped lang="scss">
-$cellSize: var(--size, 48px);
+$cellSize: var(--cell-size, 48px);
 
 .ship-sprite {
   background-color: white;
-  border: 2px solid black;
+  outline: 2px solid black;
 
   &.ship-sprite_rotated {
     width: $cellSize;
