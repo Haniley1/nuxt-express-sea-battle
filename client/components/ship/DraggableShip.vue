@@ -2,7 +2,6 @@
   <BaseShip
     class="draggable-ship"
     :ship="ship" 
-    :cell-size="cellSize"
     :dragging="isDragging"
     :preview="preview"
   >
@@ -22,15 +21,17 @@ import { toRefs } from '@vueuse/core';
 
 const props = withDefaults(defineProps<{
   ship: Ship;
-  cellSize: number;
+  canDrag?: boolean;
   dragType?: string
 }>(), {
+  canDrag: true,
   dragType: 'Ship'
 });
 
 const [collect, drag, preview] = useDrag(() => ({
   type: props.dragType,
   item: props.ship,
+  canDrag: () => props.canDrag,
   collect: (monitor: DragSourceMonitor) => ({
     isDragging: monitor.isDragging(),
   }),
@@ -53,6 +54,13 @@ const rotateShip = () => {
     height: 16px;
     background-color: black;
     cursor: grab;
+    z-index: 1;
+  }
+
+  &.ship_rotated &__drag-handler {
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
   }
 }
 </style>

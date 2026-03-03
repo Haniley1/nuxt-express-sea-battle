@@ -6,7 +6,8 @@
 
 <style lang="scss">
 body {
-  background-image: url("/static/images/bg-tile.gif");
+  // background-image: url("/static/images/bg-tile.gif");
+  background-color: rgb(95, 125, 182);
   background-size: 128px;
   overflow: hidden;
   backdrop-filter: sepia(0.15);

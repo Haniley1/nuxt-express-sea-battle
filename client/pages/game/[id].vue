@@ -1,11 +1,21 @@
 <template>
   <div class="game-page">
-    <GameGrid 
-      v-if="socketConnected"
+    <div class="game-page__container">
+      <GameGrid 
+        v-if="socketConnected"
+        :ships="ships"
+        @ship-add="addNewShip"
+      />
+      <Button
+        v-if="showContinueButton" 
+        text="Продолжить" 
+      />
+    </div>
+    <ShipCreationTab 
       :ships="ships"
-      @ship-add="addNewShip"
+      @reset="ships.length = 0"
+      @progress="(isFullset) => showContinueButton = isFullset"
     />
-    <ShipCreationTab :ships="ships" />
   </div>
 </template>
 
@@ -15,7 +25,9 @@ import { ref } from 'vue';
 import { Ship } from '~/model/Ship';
 import GameGrid from '~/components/pages/game/GameGrid.vue';
 import ShipCreationTab from '~/components/pages/game/ShipCreationTab.vue';
+import Button from '~/components/ui/Button.vue';
 
+const showContinueButton = ref(false)
 const ships = ref<Ship[]>([
   new Ship({ x: 1, y: 1, type: "BATTLESHIP", rotated: false, hits: [2, 3] }),
 ]);
@@ -45,7 +57,4 @@ socket.on('playerConnected', () => {
 </script>
 
 <style lang="scss" scoped>
-.game-page {
-  position: relative;
-}
 </style>

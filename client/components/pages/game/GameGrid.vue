@@ -11,11 +11,9 @@
         v-for="(ship, idx) in ships"
         :key="idx"
         class="game-grid__grid-ship"
-        :cell-size="cellSize"
         :ship="ship"
       />
     </div>
-    <button @click="ships.length = 0">Очистить поле</button>
   </div>
 </template>
 
@@ -41,17 +39,19 @@ const emit = defineEmits<{
 
 provide('cellSize', props.cellSize)
 
-const [, drop] = useDrop(() => ({
+const [_, drop] = useDrop(() => ({
   accept: ["Ship", "NewShip"],
+  canDrop(ship: Ship, monitor) {
+    const delta = monitor.getClientOffset()!;
+    const [x, y] = getTargetCoordsFromPixels(ship.size, ship.rotated, delta);
+
+    return canPlaceShip(x, y, ship)
+  },
   drop(_, monitor) {
     const delta = monitor.getClientOffset()!;
     const dragType = monitor.getItemType()!;
     const ship = monitor.getItem<Ship>();
     const [x, y] = getTargetCoordsFromPixels(ship.size, ship.rotated, delta);
-
-    if (!canPlaceShip(x, y, ship)) {
-      return
-    }
     
     if (dragType === "Ship") {
       ship.setCoordinates(x, y);
@@ -131,13 +131,14 @@ const getTargetCoordsFromPixels = (
 $cellSize: var(--cell-size, 32px);
 
 .game-grid {
-  position: relative;
-  height: 100vh;
+  position: absolute;
+  inset: 50% auto auto 50%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   gap: 20px;
+  transform: translate(-50%, -50%);
 
   &__grid {
     display: grid;
@@ -149,9 +150,6 @@ $cellSize: var(--cell-size, 32px);
 
     &-cell {
       border: 1px solid black;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       cursor: default;
     }
 

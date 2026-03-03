@@ -1,7 +1,7 @@
 <template>
 <div
   :ref="preview"
-  class="base-ship"
+  :class="{ 'base-ship': true, 'ship_rotated': ship.rotated }"
   :style="shipStyles"
 >
   <ShipSprite 
@@ -19,7 +19,7 @@
 </div>
 </template>
 <script setup lang="ts">
-import { computed, type StyleValue } from "vue";
+import { computed, inject, type StyleValue } from "vue";
 import { Ship } from "~/model/Ship";
 import ShipSprite from "./ShipSprite.vue";
 import { BASE_CELL_SIZE } from "~/static/data/constants";
@@ -27,10 +27,11 @@ import type { ConnectDragPreview, DragPreviewOptions } from "vue3-dnd";
 
 const props = defineProps<{
   ship: Ship;
-  cellSize: number;
   dragging?: boolean;
   preview?: ConnectDragPreview<DragPreviewOptions>
 }>();
+
+const cellSize = inject<number>('cellSize')!;
 
 const shipStyles = computed<StyleValue>(() => {
   const [left, top] = [props.ship.x * BASE_CELL_SIZE, props.ship.y * BASE_CELL_SIZE];
@@ -44,7 +45,7 @@ const shipStyles = computed<StyleValue>(() => {
 
 const getHitStyles = (hit: number): StyleValue => {
   const propertyName = props.ship.rotated ? 'top' : 'left'
-  const position = props.cellSize * (hit - 1)
+  const position = cellSize * (hit - 1)
 
   return {
     [propertyName]: `${position}px`
@@ -57,12 +58,6 @@ $cellSize: var(--cell-size, 32px);
 .base-ship {
   &.ship_rotated {
     width: $cellSize;
-  }
-
-  &.ship_rotated .base-ship__drag-handler {
-    top: 16px;
-    left: 50%;
-    transform: translateX(-50%);
   }
 
   &.ship_submarine {
