@@ -1,7 +1,7 @@
 <template>
   <div class="game-grid" :style="{ '--cell-size': `${cellSize}px` }">
     <!-- Игровая сетка -->
-    <div :ref="drop" class="game-grid__grid">
+    <div :ref="drop" class="game-grid__grid base-box">
       <div 
         v-for="idx in 10 * 10" 
         :key="idx" 
@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { provide } from "vue";
+import { inject, provide } from "vue";
 import { useDrop, type XYCoord } from "vue3-dnd";
 import DraggableShip from "~/components/ship/DraggableShip.vue";
 import { Ship } from "~/model/Ship";
@@ -26,10 +26,9 @@ import { Ship } from "~/model/Ship";
 const props = withDefaults(
   defineProps<{
     ships: Ship[];
-    cellSize?: number;
   }>(),
   {
-    cellSize: 48,
+    ships: () => []
   }
 );
 
@@ -37,7 +36,7 @@ const emit = defineEmits<{
   'ship-add': [Ship]
 }>()
 
-provide('cellSize', props.cellSize)
+const cellSize = inject<number>('cellSize')!;
 
 const [_, drop] = useDrop(() => ({
   accept: ["Ship", "NewShip"],
@@ -118,8 +117,8 @@ const getTargetCoordsFromPixels = (
   const maxX = shipRotated ? maxXYDefault : maxXYRotated;
   const maxY = !shipRotated ? maxXYDefault : maxXYRotated;
 
-  const roundedX = Math.ceil((gridX - props.cellSize) / props.cellSize);
-  const roundedY = Math.ceil((gridY - props.cellSize) / props.cellSize);
+  const roundedX = Math.ceil((gridX - cellSize) / cellSize);
+  const roundedY = Math.ceil((gridY - cellSize) / cellSize);
   const x = Math.max(0, Math.min(roundedX, maxX));
   const y = Math.max(0, Math.min(roundedY, maxY));
 
@@ -128,7 +127,7 @@ const getTargetCoordsFromPixels = (
 </script>
 
 <style scoped lang="scss">
-$cellSize: var(--cell-size, 32px);
+$cellSize: var(--cell-size);
 
 .game-grid {
   position: absolute;
@@ -144,9 +143,6 @@ $cellSize: var(--cell-size, 32px);
     display: grid;
     grid-template-columns: repeat(10, $cellSize);
     grid-template-rows: repeat(10, $cellSize);
-    border: 2px dashed black;
-    border-radius: 4px;
-    background-color: rgba(255, 255, 255, 0.3);
 
     &-cell {
       border: 1px solid black;

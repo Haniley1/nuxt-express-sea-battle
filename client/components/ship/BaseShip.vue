@@ -53,7 +53,7 @@ const getHitStyles = (hit: number): StyleValue => {
 }
 </script>
 <style scoped lang="scss">
-$cellSize: var(--cell-size, 32px);
+$cellSize: var(--cell-size);
 
 .base-ship {
   &.ship_rotated {
