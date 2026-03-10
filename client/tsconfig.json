@@ -1,5 +1,32 @@
 {
-  "extends": ["./.nuxt/tsconfig.json", "../tsconfig.json"],
-  "include": ["**/*.ts", "**/*.tsx", "**/*.vue"],
-  "exclude": ["node_modules"]
+  // Nuxt автоматически генерирует этот файл, мы только расширяем его
+  "extends": "./.nuxt/tsconfig.json",
+  
+  "compilerOptions": {
+    // Дополнительные опции если нужны
+    "types": [
+      "@types/node",
+      "nuxt-auth-utils" // если используете
+    ],
+    "verbatimModuleSyntax": false,
+    "isolatedModules": true,
+    "noImplicitOverride": true,
+    
+    // Строгие проверки (рекомендуется)
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+  },
+  
+  // Что включаем в компиляцию
+  "include": [
+    "./**/*",
+    "./.nuxt/nuxt.d.ts"  // Важно! Типы, генерируемые Nuxt
+  ],
+  
+  // Что исключаем
+  "exclude": [
+    "node_modules",
+    ".output",
+    "dist"
+  ]
 }

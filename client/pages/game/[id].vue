@@ -29,9 +29,13 @@ import Button from '~/components/ui/Button.vue';
 import PlayersTab from '~/components/pages/game/PlayersTab.vue';
 import useGameSocket from '~/composables/useGameSocket';
 
+definePageMeta({
+  middleware: ['auth']
+})
+
 provide('cellSize', 48);
 
-const { socket, secondPlayer, secondPlayerConnected } = useGameSocket()
+const { secondPlayer, secondPlayerConnected } = useGameSocket()
 
 const allShipsPlaced = ref(false)
 const ships = ref<Ship[]>([

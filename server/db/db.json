@@ -1,0 +1,24 @@
+{
+  "players": [
+    {
+      "uuid": "89b7a3a1-52d4-4a39-a922-ce8bf050a71e",
+      "nickname": "haniley2",
+      "avatar": "https://api.dicebear.com/5.x/avataaars/svg?seed=797"
+    },
+    {
+      "uuid": "6a5004bd-6644-43a8-b93c-61cba966d09b",
+      "nickname": "frregfr",
+      "avatar": "https://api.dicebear.com/5.x/avataaars/svg?seed=631"
+    },
+    {
+      "uuid": "e7188f54-2bf7-4147-afca-07ccb4896652",
+      "nickname": "regtgtg",
+      "avatar": "https://api.dicebear.com/5.x/avataaars/svg?seed=667"
+    },
+    {
+      "uuid": "f47c8d07-c81c-4357-b40a-4c8ba92811f2",
+      "nickname": "haniley1",
+      "avatar": "https://api.dicebear.com/5.x/avataaars/svg?seed=486"
+    }
+  ]
+}

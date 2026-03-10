@@ -1,32 +1,28 @@
+import { useWebSocket } from '@vueuse/core';
 import type { Player } from './../../shared/model/Player';
 import { io, type Socket } from "socket.io-client";
 import { onBeforeUnmount, onMounted, ref, type Ref } from "vue";
 
 export default function useGameSocket() {
-  const socket = ref<Socket | null>(null);
+  const isConnected = ref(false)
   const secondPlayer = ref<Player | null>(null);
   const secondPlayerConnected = ref(false);
 
-  onMounted(() => {
-    socket.value = io('http://localhost:4000/game', {
-      transports: ['websocket', 'polling']
-    })
-
-    socket.value.on('playerConnected', (player: Player) => {
-      console.log('%cSecond player connected!', 'color: darkgreen', player)
-      secondPlayer.value = player;
-      secondPlayerConnected.value = true
-    })
-
-    socket.value.on('playerDisconnected', (player) => {
-      console.log('%cSecond player disconnected!', 'color: yellow', player)
-      secondPlayer.value = null;
-      secondPlayerConnected.value = false
-    })
-  })
+  const socket = useWebSocket('ws://localhost:4000/game', {
+    onConnected(ws) {
+      isConnected.value = true
+      ws.send(JSON.stringify({ type: 'joinRoom', payload: { roomId: 'random-room-id' } }))
+    },
+    onDisconnected(ws, event) {
+      isConnected.value = false;
+    },
+    onMessage: (ws, evt) => {
+      console.log(evt)
+    }
+  });
 
   onBeforeUnmount(() => {
-    socket.value?.disconnect()
+    socket.close()
   })
 
   return {

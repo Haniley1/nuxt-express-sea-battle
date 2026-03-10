@@ -7,6 +7,12 @@ export default defineNuxtConfig({
     '@nuxt/fonts',
   ],
 
+  nitro: {
+    experimental: {
+      websocket: true
+    }
+  },
+
   alias: {
     '@shared': fileURLToPath(new URL('../shared', import.meta.url))
   },
