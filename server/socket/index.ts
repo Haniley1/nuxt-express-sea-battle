@@ -1,25 +1,21 @@
 import http from "http";
 import { WebSocketServer, type RawData } from "ws";
-
-type SocketRequestMessageType = 'joinRoom'
-type SocketResponseMessageType = 'joinedRoom' | 'playerConnected'
-
-interface SocketRequestMessageBase {
-  type: SocketRequestMessageType;
-  payload: unknown
-}
+import { authenticateWsToken } from '../middleware/auth';
 
 type SocketRequestMessage = 
-  { type: 'joinRoom', payload: { roomId: number } }
+  { type: 'joinRoom', payload: { roomId: number } } |
+  { type: 'readyToPlay', payload: {  } }
 
 type SocketResponseMessage = 
   { type: 'joinedRoom', payload: { room: { id: number } } } |
-  { type: 'playerConnected', payload: { player: unknown } }
+  { type: 'playerConnected', payload: { player: unknown } } |
+  { type: 'playerReadyToPlay', payload: { player: unknown } }
 
 export default function initializeSocket(server: http.Server) {
   const wss = new WebSocketServer({
-    path: '/game',
-    server
+    path: '/game/ws',
+    noServer: true,
+    verifyClient: authenticateWsToken
   });
 
   const buildRequest = (data: RawData): SocketRequestMessage => {
@@ -30,9 +26,8 @@ export default function initializeSocket(server: http.Server) {
     return JSON.stringify(message)
   }
 
-  let roomId;
-
   wss.on("connection", function(ws) {
+    let roomId;
     console.log("New client connected");
 
     ws.on("message", function (data) {

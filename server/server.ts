@@ -3,7 +3,8 @@ import express, { json } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import initializeSocket from './socket';
-import { WebSocketExpress } from 'websocket-express';
+import authRouter from './routes/auth'
+import gameRouter from './routes/game'
 
 dotenv.config();
 
@@ -14,6 +15,9 @@ app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true,
 }));
+
+app.use('/auth', authRouter)
+app.use('/game', gameRouter)
 
 const server = http.createServer(app);
 initializeSocket(server)

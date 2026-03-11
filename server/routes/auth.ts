@@ -39,4 +39,4 @@ router.post('/logout', authenticateToken, (req, res) => {
   res.json({ success: true });
 });
 
-app.use('/auth', router);
+export default router

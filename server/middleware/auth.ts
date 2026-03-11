@@ -1,6 +1,7 @@
+import { parseCookie } from 'cookie';
 import type { RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
-import type { WSRequestHandler } from 'websocket-express';
+import type { VerifyClientCallbackAsync } from 'ws';
 
 export const JWT_SECRET = process.env.JWT_SECRET! || 'ES4vmec3e9QVoDH5kl7KIrkmblY2J0WJ';
 export const COOKIE_OPTIONS = {
@@ -25,17 +26,19 @@ export const authenticateToken: RequestHandler = (req, res, next) => {
   }
 };
 
-export const authenticateWsToken: WSRequestHandler = (req, res, next) => {
-  const token = req.cookies?.token;
-  
+export const authenticateWsToken: VerifyClientCallbackAsync = (info, cb) => {
+  const cookies = parseCookie(info.req.headers.cookie)
+  const token = cookies.token
+
   if (!token) {
-    res.emit('authError')
+    cb(false, 401, 'Auth is required')
   }
 
   try {
-    jwt.verify(token, JWT_SECRET);
-    next();
-  } catch (err) {
-    return res.emit('authError');
+    const decodedToken = jwt.verify(token, JWT_SECRET)
+    info.req.userToken = decodedToken
+    cb(true)
+  } catch (error) {
+    cb(false, 401, 'Invalid auth token')
   }
 }
