@@ -1,14 +1,14 @@
 <template>
   <BaseShip
     class="draggable-ship"
-    :ship="ship" 
+    :ship="ship"
     :dragging="isDragging"
     :preview="preview"
   >
-    <div 
-      :ref="drag" 
-      class="draggable-ship__drag-handler" 
-      @dblclick="rotateShip" 
+    <div
+      :ref="drag"
+      class="draggable-ship__drag-handler"
+      @dblclick="rotateShip"
     />
   </BaseShip>
 </template>
@@ -19,14 +19,17 @@ import BaseShip from './BaseShip.vue';
 import { useDrag, type DragSourceMonitor } from 'vue3-dnd';
 import { toRefs } from '@vueuse/core';
 
-const props = withDefaults(defineProps<{
-  ship: Ship;
-  canDrag?: boolean;
-  dragType?: string
-}>(), {
-  canDrag: true,
-  dragType: 'Ship'
-});
+const props = withDefaults(
+  defineProps<{
+    ship: Ship;
+    canDrag?: boolean;
+    dragType?: string;
+  }>(),
+  {
+    canDrag: true,
+    dragType: 'Ship',
+  },
+);
 
 const [collect, drag, preview] = useDrag(() => ({
   type: props.dragType,
@@ -39,8 +42,8 @@ const [collect, drag, preview] = useDrag(() => ({
 const { isDragging } = toRefs(collect);
 
 const rotateShip = () => {
-  props.ship.rotate()
-}
+  props.ship.rotate();
+};
 </script>
 
 <style lang="scss" scoped>

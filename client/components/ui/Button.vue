@@ -1,20 +1,23 @@
 <template>
-<button 
-  :class="{
-    'button': true,
-    [`theme_${theme}`]: !!theme
-  }" 
-  v-text="text" 
-/>
+  <button
+    :class="{
+      button: true,
+      [`theme_${theme}`]: !!theme,
+    }"
+    v-text="text"
+  />
 </template>
 
 <script setup lang="ts">
-const props = withDefaults(defineProps<{
-  text?: string
-  theme?: string
-}>(), {
-  theme: 'main'
-})
+const props = withDefaults(
+  defineProps<{
+    text?: string;
+    theme?: string;
+  }>(),
+  {
+    theme: 'main',
+  },
+);
 </script>
 
 <style scoped>

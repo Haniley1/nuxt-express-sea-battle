@@ -1,39 +1,37 @@
 <template>
-<div class="players-tab base-box">
-  <div class="players-tab__item">
-    <img
-      class="players-tab__item-avatar"
-      src="/static/images/avatars/default.jpg"
-    />
-    <span class="players-tab__item-nickname">
-      Player 1
-    </span>
-  </div>
+  <div class="players-tab base-box">
+    <div class="players-tab__item">
+      <img
+        class="players-tab__item-avatar"
+        src="/static/images/avatars/default.jpg"
+      />
+      <span class="players-tab__item-nickname">
+        {{ player?.nickname }}
+      </span>
+    </div>
 
-  <div class="players-tab__separator" />
+    <div class="players-tab__separator" />
 
-  <div 
-    v-if="secondPlayer"
-    class="players-tab__item"
-  >
-    <img
-      class="players-tab__item-avatar"
-      :src="secondPlayer.avatar"
-    />
-    <span 
-      class="players-tab__item-nickname" 
-      v-text="secondPlayer.nickname" 
-    />
+    <div
+      v-if="secondPlayer"
+      class="players-tab__item"
+    >
+      <img
+        class="players-tab__item-avatar"
+        :src="secondPlayer.avatar || '/static/images/avatars/default.jpg'"
+      />
+      <span
+        class="players-tab__item-nickname"
+        v-text="secondPlayer.nickname"
+      />
+    </div>
+    <div
+      v-else
+      class="players-tab__item"
+    >
+      <span class="players-tab__item-waiting"> Ищем игрока </span>
+    </div>
   </div>
-  <div 
-    v-else 
-    class="players-tab__item"
-  >
-    <span class="players-tab__item-waiting">
-      Ищем игрока
-    </span>
-  </div>
-</div>
 </template>
 
 <script setup lang="ts">
@@ -42,7 +40,7 @@ import type { Player } from '@shared/model/Player';
 const props = defineProps<{
   player?: Player;
   secondPlayer?: Player;
-}>()
+}>();
 </script>
 
 <style lang="scss" scoped>
@@ -96,11 +94,23 @@ const props = defineProps<{
 }
 
 @keyframes blink-dots {
-  0%   { content: '' }
-  20%  { content: '.' }
-  40%  { content: '..' }
-  60%  { content: '...' }
-  80%  { content: '..' }
-  100% { content: '.' }
+  0% {
+    content: '';
+  }
+  20% {
+    content: '.';
+  }
+  40% {
+    content: '..';
+  }
+  60% {
+    content: '...';
+  }
+  80% {
+    content: '..';
+  }
+  100% {
+    content: '.';
+  }
 }
 </style>

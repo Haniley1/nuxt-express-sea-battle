@@ -3,7 +3,7 @@ import express, { json } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import initializeSocket from './socket';
-import roomsRouter from './routes/rooms';
+import lobbiesRouter from './routes/lobbies';
 import authRouter from './routes/auth';
 
 dotenv.config();
@@ -16,7 +16,7 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use('/rooms', roomsRouter);
+app.use('/lobby', lobbiesRouter);
 app.use('/auth', authRouter);
 
 const server = http.createServer(app);

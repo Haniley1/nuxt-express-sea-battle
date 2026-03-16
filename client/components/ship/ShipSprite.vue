@@ -1,18 +1,18 @@
 <template>
-<div 
-  class="ship-sprite"
-  :class="[`ship-sprite_${ship.type.toLowerCase()}`, { 'ship-sprite_rotated': ship.rotated }]"
->
-  <slot />
-</div>
+  <div
+    class="ship-sprite"
+    :class="[`ship-sprite_${ship.type.toLowerCase()}`, { 'ship-sprite_rotated': ship.rotated }]"
+  >
+    <slot />
+  </div>
 </template>
 
 <script setup lang="ts">
 import type { Ship } from '~/model/Ship';
 
 const { ship } = defineProps<{
-  ship: Ship
-}>()
+  ship: Ship;
+}>();
 </script>
 
 <style scoped lang="scss">
@@ -101,12 +101,13 @@ $cellSize: var(--cell-size, 48px);
     height: $cellSize;
     border: 3px dashed darkred;
 
-    &::before, &::after {
+    &::before,
+    &::after {
       content: '';
       display: block;
       position: absolute;
       top: 50%;
-      background-color:darkred;
+      background-color: darkred;
       width: 100%;
       height: 2px;
     }

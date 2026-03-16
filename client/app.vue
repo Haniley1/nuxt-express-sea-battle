@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { HTML5Backend } from "react-dnd-html5-backend";
-import { DndProvider } from "vue3-dnd";
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { DndProvider } from 'vue3-dnd';
 </script>
 
 <template>

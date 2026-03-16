@@ -1,20 +1,20 @@
 <template>
-<div class="nickname-input">
-  <input 
-    class="nickname-input__input" 
-    placeholder="Никнейм"
-    v-model="nickname" 
-    name="nickname" 
-    type="text"
-    @keyup.enter="login"
-  >
-  <button 
-    class="nickname-input__button" 
-    @click="login"
-  >
-    ✓
-  </button>
-</div>
+  <div class="nickname-input">
+    <input
+      class="nickname-input__input"
+      placeholder="Никнейм"
+      v-model="nickname"
+      name="nickname"
+      type="text"
+      @keyup.enter="login"
+    />
+    <button
+      class="nickname-input__button"
+      @click="login"
+    >
+      ✓
+    </button>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -24,7 +24,7 @@ const nickname = ref('');
 
 const login = () => {
   emit('submit', nickname.value);
-}
+};
 </script>
 
 <style scoped lang="scss">
@@ -57,7 +57,7 @@ const login = () => {
     border: none;
     border-left: 1px solid black;
     outline: none;
-    background-color: #4CAF50;
+    background-color: #4caf50;
     color: white;
     cursor: pointer;
 

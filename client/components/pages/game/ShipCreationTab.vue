@@ -1,35 +1,35 @@
 <template>
-<div class="ship-creation-tab">
-  <div class="ship-creation-tab__container">
-    <div class="ship-creation-tab__inner">
-      <template
-        v-for="type in ['BATTLESHIP', 'CRUISERS', 'DESTROYER', 'SUBMARINE'] as const"
-        :key="type"
-      >
-        <div
-          :class="{
-            'ship-creation-tab__item': true,
-            'disabled': shipsRemaining[type] <= 0
-          }" 
+  <div class="ship-creation-tab">
+    <div class="ship-creation-tab__container">
+      <div class="ship-creation-tab__inner">
+        <template
+          v-for="type in ['BATTLESHIP', 'CRUISERS', 'DESTROYER', 'SUBMARINE'] as const"
+          :key="type"
         >
-          <DraggableShip
-            :ship="new Ship({ type, rotated: false, x: 0, y: 0 })" 
-            :can-drag="shipsRemaining[type] > 0"
-            drag-type="NewShip"
-          />
-          <span 
-            class="ship-creation-tab__item-count" 
-            v-text="shipsRemaining[type]"
-          />
-        </div>
-      </template>
+          <div
+            :class="{
+              'ship-creation-tab__item': true,
+              disabled: shipsRemaining[type] <= 0,
+            }"
+          >
+            <DraggableShip
+              :ship="new Ship({ type, rotated: false, x: 0, y: 0 })"
+              :can-drag="shipsRemaining[type] > 0"
+              drag-type="NewShip"
+            />
+            <span
+              class="ship-creation-tab__item-count"
+              v-text="shipsRemaining[type]"
+            />
+          </div>
+        </template>
+      </div>
     </div>
+    <Button
+      text="Сбросить сетку"
+      @click="$emit('reset')"
+    />
   </div>
-  <Button 
-    text="Сбросить сетку"
-    @click="$emit('reset')" 
-  />
-</div>
 </template>
 
 <script setup lang="ts">
@@ -39,39 +39,39 @@ import Button from '~/components/ui/Button.vue';
 import { Ship, type ShipType } from '~/model/Ship';
 
 const { ships } = defineProps<{
-  ships: Ship[]
-}>()
+  ships: Ship[];
+}>();
 const emit = defineEmits<{
-  'progress': [boolean]
-  'reset': [void]
-}>()
+  progress: [boolean];
+  reset: [void];
+}>();
 
-const getShipCountByType = (type: ShipType) => ships.reduce((count, ship) => {
-  if (ship.type === type) {
-    count++
-  }
+const getShipCountByType = (type: ShipType) =>
+  ships.reduce((count, ship) => {
+    if (ship.type === type) {
+      count++;
+    }
 
-  return count
-}, 0)
+    return count;
+  }, 0);
 
 const getShipsRemainingByType = (type: ShipType, max: number) => {
-  const shipsCount = getShipCountByType(type)
-  return max - shipsCount
-}
+  const shipsCount = getShipCountByType(type);
+  return max - shipsCount;
+};
 
 const shipsRemaining = computed<{ [key in ShipType]: number }>(() => ({
   BATTLESHIP: getShipsRemainingByType('BATTLESHIP', 1),
   CRUISERS: getShipsRemainingByType('CRUISERS', 2),
   DESTROYER: getShipsRemainingByType('DESTROYER', 3),
   SUBMARINE: getShipsRemainingByType('SUBMARINE', 4),
-}))
+}));
 
 watch(shipsRemaining, (remaining) => {
-  const isFullset = Object.values(shipsRemaining.value).every(count => count === 0);
+  const isFullset = Object.values(shipsRemaining.value).every((count) => count === 0);
 
-  emit('progress', isFullset)
-})
-
+  emit('progress', isFullset);
+});
 </script>
 
 <style scoped lang="scss">
@@ -80,7 +80,7 @@ watch(shipsRemaining, (remaining) => {
   inset: 50% auto 0 16px;
   height: fit-content;
   transform: translateY(-50%);
-  
+
   &__container {
     background-color: rgba(255, 255, 255, 0.3);
     border-radius: 4px;
@@ -99,7 +99,7 @@ watch(shipsRemaining, (remaining) => {
     text-align: center;
 
     &.disabled {
-      opacity: .5;
+      opacity: 0.5;
     }
 
     &-count {

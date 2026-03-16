@@ -1,28 +1,26 @@
 <template>
-<div class="main-page">
-  <div class="main-page__header">
-    <h1 class="main-page__header-title">Морской бой</h1>
-  </div>
-  <div class="main-page__content">
-    <div class="main-page__content-box">
-      <NicknameInput
-        v-if="!session.isAuthenticated.value"
-        @submit="login" 
-      />
-      <h2 
-        v-else 
-        v-text="session.nickname.value" 
-      />
+  <div class="main-page">
+    <div class="main-page__header">
+      <h1 class="main-page__header-title">Морской бой</h1>
     </div>
+    <div class="main-page__content">
+      <div class="main-page__content-box">
+        <NicknameInput
+          v-if="!session.isAuthenticated.value"
+          @submit="login"
+        />
+        <h2
+          v-else
+          v-text="session.nickname.value"
+        />
+      </div>
 
-    <div class="main-page__content-box">
-      <h2 class="main-page__content-box-title">
-        Список лобби:
-      </h2>
-      <LobbyList />
+      <div class="main-page__content-box">
+        <h2 class="main-page__content-box-title">Список лобби:</h2>
+        <LobbyList />
+      </div>
     </div>
   </div>
-</div>
 </template>
 
 <script setup lang="ts">
@@ -30,16 +28,16 @@ import LobbyList from '~/components/pages/main/LobbyList.vue';
 import NicknameInput from '~/components/ui/NicknameInput.vue';
 import { useAuth } from '~/composables/useAuth';
 
-const session = useAuth()
-console.log('Session state:', session)
+const session = useAuth();
+console.log('Session state:', session);
 
 const login = async (nickname: string) => {
-  const result = await session.login(nickname)
-  
+  const result = await session.login(nickname);
+
   if (!result.success) {
-    alert('Ошибка при входе')
+    alert('Ошибка при входе');
   }
-}
+};
 </script>
 
 <style scoped lang="scss">
@@ -73,7 +71,7 @@ const login = async (nickname: string) => {
   max-width: 800px;
   transform: translate(-50%, -50%);
   margin-top: 24px;
-  
+
   &-box {
     padding: 12px 24px;
     border: 3px double black;

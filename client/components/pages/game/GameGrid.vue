@@ -1,11 +1,17 @@
 <template>
-  <div class="game-grid" :style="{ '--cell-size': `${cellSize}px` }">
+  <div
+    class="game-grid"
+    :style="{ '--cell-size': `${cellSize}px` }"
+  >
     <!-- Игровая сетка -->
-    <div :ref="drop" class="game-grid__grid base-box">
-      <div 
-        v-for="idx in 10 * 10" 
-        :key="idx" 
-        class="game-grid__grid-cell" 
+    <div
+      :ref="drop"
+      class="game-grid__grid base-box"
+    >
+      <div
+        v-for="idx in 10 * 10"
+        :key="idx"
+        class="game-grid__grid-cell"
       />
       <DraggableShip
         v-for="(ship, idx) in ships"
@@ -18,47 +24,47 @@
 </template>
 
 <script setup lang="ts">
-import { inject, provide } from "vue";
-import { useDrop, type XYCoord } from "vue3-dnd";
-import DraggableShip from "~/components/ship/DraggableShip.vue";
-import { Ship } from "~/model/Ship";
+import { inject, provide } from 'vue';
+import { useDrop, type XYCoord } from 'vue3-dnd';
+import DraggableShip from '~/components/ship/DraggableShip.vue';
+import { Ship } from '~/model/Ship';
 
 const props = withDefaults(
   defineProps<{
     ships: Ship[];
   }>(),
   {
-    ships: () => []
-  }
+    ships: () => [],
+  },
 );
 
 const emit = defineEmits<{
-  'ship-add': [Ship]
-}>()
+  'ship-add': [Ship];
+}>();
 
 const cellSize = inject<number>('cellSize')!;
 
 const [_, drop] = useDrop(() => ({
-  accept: ["Ship", "NewShip"],
+  accept: ['Ship', 'NewShip'],
   canDrop(ship: Ship, monitor) {
     const delta = monitor.getClientOffset()!;
     const [x, y] = getTargetCoordsFromPixels(ship.size, ship.rotated, delta);
 
-    return canPlaceShip(x, y, ship)
+    return canPlaceShip(x, y, ship);
   },
   drop(_, monitor) {
     const delta = monitor.getClientOffset()!;
     const dragType = monitor.getItemType()!;
     const ship = monitor.getItem<Ship>();
     const [x, y] = getTargetCoordsFromPixels(ship.size, ship.rotated, delta);
-    
-    if (dragType === "Ship") {
-      ship.setCoordinates(x, y);
-    } else if (dragType === "NewShip") {
-      const newShip = new Ship({ x, y, type: ship.type, rotated: false })
-      newShip.setCoordinates(x, y)
 
-      emit('ship-add', newShip)
+    if (dragType === 'Ship') {
+      ship.setCoordinates(x, y);
+    } else if (dragType === 'NewShip') {
+      const newShip = new Ship({ x, y, type: ship.type, rotated: false });
+      newShip.setCoordinates(x, y);
+
+      emit('ship-add', newShip);
     }
   },
 }));
@@ -66,7 +72,7 @@ const [_, drop] = useDrop(() => ({
 const getTurtleCoordinates = (
   x: number,
   y: number,
-  ship: Ship
+  ship: Ship,
 ): { x: [number, number]; y: [number, number] } => {
   const xEnd = !ship.rotated ? x + ship.size - 1 : x;
   const yEnd = ship.rotated ? y + ship.size - 1 : y;
@@ -100,13 +106,9 @@ const canPlaceShip = (x: number, y: number, placingShip: Ship): boolean => {
     });
 };
 
-const getTargetCoordsFromPixels = (
-  shipSize: number,
-  shipRotated: boolean,
-  delta: XYCoord
-) => {
+const getTargetCoordsFromPixels = (shipSize: number, shipRotated: boolean, delta: XYCoord) => {
   // TODO: Получать элемент через рефку
-  const gridEl = document.querySelector(".game-grid__grid");
+  const gridEl = document.querySelector('.game-grid__grid');
   const gridDelta = gridEl?.getBoundingClientRect()!;
 
   const gridX = delta.x - gridDelta.x;

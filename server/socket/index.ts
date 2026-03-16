@@ -1,107 +1,50 @@
 import http from "http";
 import { WebSocketServer, type WebSocket, type RawData } from "ws";
-import {
-  type Coordinate,
-  type GamePhase,
-  type PlayerId,
-  type Room,
-  type RoomId,
-  rooms,
-} from "./rooms";
+import { GamePhase, type LobbyID, lobbies, type PlayerId } from "../models/Lobby";
+import type { Lobby } from "../../shared/model/Lobby";
+import { parseCookie } from "cookie";
+import type {
+  FireRequest,
+  JoinLobbyPayloadOut,
+  JoinLobbyRequest,
+  PlaceShipsRequest,
+  SocketRequestMessage,
+  SocketResponseMessage,
+} from "./messages";
 
-type SocketRequestMessageType = "joinRoom" | "placeShips" | "fire";
-
-type SocketResponseMessageType =
-  | "joinedRoom"
-  | "gameUpdate"
-  | "shotResult"
-  | "playerConnected"
-  | "error";
-
-interface SocketRequestMessageBase<TType extends SocketRequestMessageType, TPayload> {
-  type: TType;
-  payload: TPayload;
-}
-
-// === REQUESTS ===
-interface JoinRoomPayload {
-  roomId: RoomId;
-}
-interface PlaceShipsPayload {
-  roomId: RoomId;
-  ships: Coordinate[];
-}
-interface FirePayload {
-  roomId: RoomId;
-  x: number;
-  y: number;
-}
-type JoinRoomRequest = SocketRequestMessageBase<"joinRoom", JoinRoomPayload>;
-type PlaceShipsRequest = SocketRequestMessageBase<"placeShips", PlaceShipsPayload>;
-type FireRequest = SocketRequestMessageBase<"fire", FirePayload>;
-
-interface SocketResponseMessageBase<TType extends SocketResponseMessageType, TPayload> {
-  type: TType;
-  payload: TPayload;
-}
-
-type SocketRequestMessage =
-  | JoinRoomRequest
-  | PlaceShipsRequest
-  | FireRequest;
-// === REQUESTS ===
-
-// === RESPONSES ===
-type JoinRoomResponse = SocketResponseMessageBase<"joinedRoom", { room: Room }>;
-type GameUpdateResponse = SocketResponseMessageBase<"gameUpdate", { room: Room }>;
-type ShotResultResponse = SocketResponseMessageBase<"shotResult", {
-  roomId: RoomId;
-  x: number;
-  y: number;
-  result: "hit" | "miss" | "sunk" | "win";
-  yourTurn: boolean;
-}>;
-type PlayerConnectedResponse = SocketResponseMessageBase<"playerConnected", { playerId: PlayerId; roomId?: RoomId }>;
-type ErrorResponse = SocketResponseMessageBase<"error", { message: string }>;
-
-type SocketResponseMessage =
-  | JoinRoomResponse
-  | GameUpdateResponse
-  | ShotResultResponse
-  | PlayerConnectedResponse
-  | ErrorResponse;
-// === RESPONSES ===
-
-interface PlayerState {
+export interface PlayerState {
   id: PlayerId;
+  nickname: string
   socket: WebSocket;
-  roomId?: RoomId;
+  lobbyId?: LobbyID;
 }
 
-const serializeCoord = (x: number, y: number) => `${x},${y}`;
+const createClientLobbyState = (
+  lobby: Lobby,
+  currentPlayer?: PlayerState,
+): JoinLobbyPayloadOut => {
+  const currentPlayerId = currentPlayer?.id;
+  const player = lobby.playersState.find((p) => p.id === currentPlayerId);
+  const enemyPlayer = lobby.playersState.find((p) => p.id !== currentPlayerId);
 
-const deserializeCoord = (key: string): Coordinate => {
-  const [x, y] = key.split(",").map(Number);
-  return { x, y };
+  return {
+    player: {
+      ...player!,
+    },
+    enemy: enemyPlayer ? { id: enemyPlayer.id, nickname: enemyPlayer.nickname } : undefined,
+    lobbyId: lobby.id,
+    phase: lobby.phase,
+  };
 };
-
-const createClientRoomState = (room: Room, currentPlayer?: PlayerState): Room => ({
-  ...room,
-  players: room.players.map((p) => ({
-    ...p,
-    isYou: currentPlayer ? p.id === currentPlayer.id : undefined,
-  })),
-});
 
 const generateId = () => Math.random().toString(36).slice(2, 10);
 
 export default function initializeSocket(server: http.Server) {
+  const playersBySocket = new Map<WebSocket, PlayerState>();
   const wss = new WebSocketServer({
-    path: "/game",
+    path: "/game/ws",
     server,
   });
-
-  const playersBySocket = new Map<WebSocket, PlayerState>();
 
   const buildRequest = (data: RawData): SocketRequestMessage => {
     return JSON.parse(data.toString());
@@ -119,57 +62,58 @@ export default function initializeSocket(server: http.Server) {
     }
   };
 
-  const broadcastRoom = (room: Room) => {
+  const sendToLobby = (lobby: Lobby) => {
     playersBySocket.forEach((player) => {
-      if (player.roomId !== room.id) return;
+      if (player.lobbyId !== lobby.id) return;
       sendToPlayer(player, {
         type: "gameUpdate",
-        payload: { room: createClientRoomState(room, player) },
+        payload: createClientLobbyState(lobby, player),
       });
     });
   };
 
-  const handleJoinRoom = (player: PlayerState, payload: JoinRoomRequest["payload"]) => {
-    const room = rooms.get(payload.roomId);
-    if (!room) {
+  const handleJoinLobby = (player: PlayerState, payload: JoinLobbyRequest["payload"]) => {
+    const lobby = lobbies.get(payload.lobbyId);
+    if (!lobby) {
       sendToPlayer(player, {
         type: "error",
-        payload: { message: "Комната не найдена" },
+        payload: { message: "Lobby not found" },
       });
       return;
     }
 
-    if (room.players.length >= 2) {
+    if (lobby.playersState.length >= 2) {
       sendToPlayer(player, {
         type: "error",
-        payload: { message: "Комната уже заполнена" },
+        payload: { message: "Lobby is full" },
       });
       return;
     }
 
-    room.players.push({
+    lobby.playersState.push({
       id: player.id,
+      nickname: player.nickname,
       ready: false,
       ships: [],
       hits: [],
       misses: [],
     });
-    player.roomId = room.id;
-    room.phase = "placingShips";
+    player.lobbyId = lobby.id;
+    lobby.phase = GamePhase.PlacingShips;
 
-    room.players.forEach((roomPlayer) => {
-      const targetPlayer = [...playersBySocket.values()].find((p) => p.id === roomPlayer.id);
+    lobby.playersState.forEach((lobbyPlayer) => {
+      const targetPlayer = [...playersBySocket.values()].find((p) => p.id === lobbyPlayer.id);
       if (!targetPlayer) return;
       sendToPlayer(targetPlayer, {
-        type: "joinedRoom",
-        payload: { room: createClientRoomState(room, targetPlayer) },
+        type: "joinedLobby",
+        payload: createClientLobbyState(lobby, targetPlayer),
       });
     });
   };
 
   const handlePlaceShips = (player: PlayerState, payload: PlaceShipsRequest["payload"]) => {
-    const room = rooms.get(payload.roomId);
-    if (!room || player.roomId !== room.id) {
+    const lobby = lobbies.get(payload.lobbyId);
+    if (!lobby || player.lobbyId !== lobby.id) {
       sendToPlayer(player, {
         type: "error",
         payload: { message: "Неверная комната" },
@@ -177,7 +121,7 @@ export default function initializeSocket(server: http.Server) {
       return;
     }
 
-    if (room.phase !== "placingShips" && room.phase !== "waitingForPlayers") {
+    if (lobby.phase !== GamePhase.PlacingShips && lobby.phase !== GamePhase.WaitingForPlayers) {
       sendToPlayer(player, {
         type: "error",
         payload: { message: "Нельзя расставить корабли на этой стадии игры" },
@@ -185,8 +129,8 @@ export default function initializeSocket(server: http.Server) {
       return;
     }
 
-    const roomPlayer = room.players.find((p) => p.id === player.id);
-    if (!roomPlayer) {
+    const lobbyPlayer = lobby.playersState.find((p) => p.id === player.id);
+    if (!lobbyPlayer) {
       sendToPlayer(player, {
         type: "error",
         payload: { message: "Игрок не найден в комнате" },
@@ -194,23 +138,59 @@ export default function initializeSocket(server: http.Server) {
       return;
     }
 
-    roomPlayer.ships = payload.ships.map(({ x, y }) => ({ x, y }));
-    roomPlayer.ready = true;
+    lobbyPlayer.ships = payload.ships.map(({ x, y }) => ({ x, y }));
+    lobbyPlayer.ready = true;
 
     // Если оба игрока готовы -- начинаем игру
-    if (room.players.length === 2 && room.players.every((p) => p.ready)) {
-      room.phase = "inProgress";
+    if (lobby.playersState.length === 2 && lobby.playersState.every((p) => p.ready)) {
+      lobby.phase = GamePhase.InProgress;
       // Случайно выбираем кто ходит первым
-      const starter = room.players[Math.floor(Math.random() * room.players.length)];
-      room.currentTurnPlayerId = starter.id;
+      const starter = lobby.playersState[Math.floor(Math.random() * lobby.playersState.length)];
+      lobby.currentTurnPlayerId = starter.id;
     }
 
-    broadcastRoom(room);
+    sendToLobby(lobby);
+  };
+
+  const handlePlayerLeftLobby = (player: PlayerState) => {
+    if (player.lobbyId == null) {
+      return;
+    }
+
+    const lobby = lobbies.get(player.lobbyId);
+    if (!lobby) {
+      return;
+    }
+
+    lobby.playersState = lobby.playersState.filter((pl) => pl.id !== player.id);
+
+    if (lobby.playersState.length === 0) {
+      lobbies.delete(lobby.id);
+      return;
+    }
+
+    const remainingPlayerState = lobby.playersState[0];
+    const remainingSocketPlayer = [...playersBySocket.values()].find(
+      (pl) => pl.id === remainingPlayerState.id,
+    );
+
+    if (remainingSocketPlayer) {
+      sendToPlayer(remainingSocketPlayer, {
+        type: "playerDisconnected",
+        payload: { lobbyId: lobby.id, enemyId: player.id },
+      });
+    }
+
+    if (lobby.phase === GamePhase.InProgress) {
+      lobby.phase = GamePhase.Finished;
+    }
+
+    sendToLobby(lobby);
   };
 
   const handleFire = (player: PlayerState, payload: FireRequest["payload"]) => {
-    const room = rooms.get(payload.roomId);
-    if (!room || player.roomId !== room.id) {
+    const lobby = lobbies.get(payload.lobbyId);
+    if (!lobby || player.lobbyId !== lobby.id) {
       sendToPlayer(player, {
         type: "error",
         payload: { message: "Неверная комната" },
@@ -218,7 +198,7 @@ export default function initializeSocket(server: http.Server) {
       return;
     }
 
-    if (room.phase !== "inProgress") {
+    if (lobby.phase !== GamePhase.InProgress) {
       sendToPlayer(player, {
         type: "error",
         payload: { message: "Игра ещё не началась или уже закончилась" },
@@ -226,7 +206,7 @@ export default function initializeSocket(server: http.Server) {
       return;
     }
 
-    if (room.currentTurnPlayerId !== player.id) {
+    if (lobby.currentTurnPlayerId !== player.id) {
       sendToPlayer(player, {
         type: "error",
         payload: { message: "Сейчас ход соперника" },
@@ -234,7 +214,7 @@ export default function initializeSocket(server: http.Server) {
       return;
     }
 
-    const currentPlayer = room.players.find((p) => p.id === player.id);
+    const currentPlayer = lobby.playersState.find((p) => p.id === player.id);
     if (!currentPlayer) {
       sendToPlayer(player, {
         type: "error",
@@ -257,7 +237,7 @@ export default function initializeSocket(server: http.Server) {
 
     let result: "hit" | "miss" | "sunk" | "win" = "miss";
 
-    const opponent = room.players.find((p) => p.id !== player.id);
+    const opponent = lobby.playersState.find((p) => p.id !== player.id);
     if (!opponent) {
       sendToPlayer(player, {
         type: "error",
@@ -279,7 +259,7 @@ export default function initializeSocket(server: http.Server) {
 
       if (remainingShipCells.length === 0) {
         result = "win";
-        room.phase = "finished";
+        lobby.phase = GamePhase.Finished;
       }
     } else {
       currentPlayer.misses.push({ x: payload.x, y: payload.y });
@@ -287,17 +267,17 @@ export default function initializeSocket(server: http.Server) {
     }
 
     // Меняем ход, если промах или игра не закончилась
-    if (room.phase === "inProgress" && result === "miss") {
-      room.currentTurnPlayerId = opponent.id;
+    if (lobby.phase === GamePhase.InProgress && result === "miss") {
+      lobby.currentTurnPlayerId = opponent.id;
     }
 
-    const yourTurn = room.currentTurnPlayerId === player.id && room.phase === "inProgress";
+    const yourTurn = lobby.currentTurnPlayerId === player.id && lobby.phase === GamePhase.InProgress;
 
     // Ответ стреляющему
     sendToPlayer(player, {
       type: "shotResult",
       payload: {
-        roomId: room.id,
+        lobbyId: lobby.id,
         x: payload.x,
         y: payload.y,
         result,
@@ -306,16 +286,19 @@ export default function initializeSocket(server: http.Server) {
     });
 
     // Обновление комнаты всем
-    broadcastRoom(room);
+    sendToLobby(lobby);
   };
 
-  wss.on("connection", (ws) => {
+  wss.on("connection", (ws, request) => {
+    const cookie = parseCookie(request.headers.cookie || '')
+    const nickname = cookie.nickname || 'Unknown Player'
     console.log("New client connected");
 
     const player: PlayerState = {
       id: generateId(),
+      nickname,
       socket: ws,
-      roomId: undefined,
+      lobbyId: undefined,
     };
 
     playersBySocket.set(ws, player);
@@ -323,7 +306,7 @@ export default function initializeSocket(server: http.Server) {
     // Сообщим клиенту его id
     sendToPlayer(player, {
       type: "playerConnected",
-      payload: { playerId: player.id, roomId: undefined },
+      payload: { playerId: player.id, lobbyId: undefined },
     });
 
     ws.on("message", (data) => {
@@ -334,7 +317,7 @@ export default function initializeSocket(server: http.Server) {
         console.error("Failed to parse message", err);
         sendToPlayer(player, {
           type: "error",
-          payload: { message: "Неверный формат сообщения" },
+          payload: { message: "Incorrect message format" },
         });
         return;
       }
@@ -342,8 +325,8 @@ export default function initializeSocket(server: http.Server) {
       console.log("Received:", request);
 
       switch (request.type) {
-        case "joinRoom":
-          handleJoinRoom(player, request.payload);
+        case "joinLobby":
+          handleJoinLobby(player, request.payload);
           break;
         case "placeShips":
           handlePlaceShips(player, request.payload);
@@ -354,32 +337,17 @@ export default function initializeSocket(server: http.Server) {
         default:
           sendToPlayer(player, {
             type: "error",
-            payload: { message: "Неизвестный тип сообщения" },
+            payload: { message: "Unknown message type" },
           });
       }
     });
 
     ws.on("close", () => {
       console.log("Client disconnected");
-      const p = playersBySocket.get(ws);
-      if (!p) return;
+      const player = playersBySocket.get(ws);
+      if (!player) return;
 
-      if (p.roomId != null) {
-        const room = rooms.get(p.roomId);
-        if (room) {
-          room.players = room.players.filter((pl) => pl.id !== p.id);
-
-          if (room.players.length === 0) {
-            rooms.delete(room.id);
-          } else {
-            if (room.phase === "inProgress") {
-              room.phase = "finished";
-            }
-            broadcastRoom(room);
-          }
-        }
-      }
-
+      handlePlayerLeftLobby(player);
       playersBySocket.delete(ws);
     });
   });

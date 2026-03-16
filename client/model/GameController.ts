@@ -1,16 +1,14 @@
-import type { Ship } from "./Ship";
+import type { Ship } from './Ship';
 
 export class GameController {
-  public ships: Ship[] = []
-  public gridSize = 10
+  public ships: Ship[] = [];
+  public gridSize = 10;
 
   constructor({ gridSize }: { gridSize?: number } = {}) {
     if (gridSize) {
-      this.gridSize = gridSize
+      this.gridSize = gridSize;
     }
   }
 
-  public rotateShip() {
-
-  }
+  public rotateShip() {}
 }
