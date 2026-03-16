@@ -2,7 +2,6 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { authenticateToken, COOKIE_OPTIONS, JWT_SECRET } from '../middleware/auth.js';
-import { app } from '../server.js';
 
 const router = express.Router();
 
@@ -39,4 +38,4 @@ router.post('/logout', authenticateToken, (req, res) => {
   res.json({ success: true });
 });
 
-app.use('/auth', router);
+export default router;
