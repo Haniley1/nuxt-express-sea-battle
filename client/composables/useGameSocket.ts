@@ -8,7 +8,7 @@ export default function useGameSocket() {
   const secondPlayer = ref<Player | null>(null);
   const secondPlayerConnected = ref(false);
 
-  const socket = useWebSocket('ws://localhost:4000/game', {
+  const socket = useWebSocket('ws://localhost:4000/game/ws', {
     onConnected(ws) {
       isConnected.value = true
       ws.send(JSON.stringify({ type: 'joinRoom', payload: { roomId: 'random-room-id' } }))

@@ -6,7 +6,7 @@
   <div class="main-page__content">
     <div class="main-page__content-box">
       <NicknameInput
-        v-if="!session.isAuthenticated"
+        v-if="!session.isAuthenticated.value"
         @submit="login" 
       />
       <h2 
